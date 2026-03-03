@@ -123,6 +123,7 @@ Add smooth animations and visual feedback throughout the interface.
 ---
 
 ### [ ] Step: Responsive Design Implementation
+<!-- chat-id: 6522a77b-51f1-4467-83e1-5ffa9ff90f7f -->
 
 Make portfolio fully responsive across all device sizes.
 
@@ -149,6 +150,7 @@ Make portfolio fully responsive across all device sizes.
 ---
 
 ### [ ] Step: Accessibility and UX Enhancements
+<!-- chat-id: 058f35dd-6ec8-437e-9cd5-388c933f861c -->
 
 Improve accessibility and user experience.
 
