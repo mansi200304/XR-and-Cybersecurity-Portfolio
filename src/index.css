@@ -1782,19 +1782,33 @@ a:hover {
 
 /* Keyboard Navigation Hints */
 .selector::before {
-  content: 'Use arrow keys or 1-7 to navigate';
+  content: '⌨ Use arrow keys or 1-7 to navigate';
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
   font-size: var(--font-xs);
-  color: var(--text-subtle);
+  color: var(--team-color);
+  background: rgba(0, 0, 0, 0.9);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--team-color);
   white-space: nowrap;
   opacity: 0;
   transition: opacity var(--transition-base);
   pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
 }
 
 .selector:focus-within::before {
   opacity: 1;
+}
+
+@media (max-width: 767px) {
+  .selector::before {
+    content: 'Swipe to navigate';
+    bottom: auto;
+    top: calc(100% + 10px);
+  }
 }
