@@ -4,6 +4,7 @@ import { Stars, useGLTF, Environment, ContactShadows, Float } from '@react-three
 import * as THREE from 'three';
 import { HandTracker } from './HandTracker';
 import ErrorBoundary from './components/ErrorBoundary';
+import RaceEngine from './components/Game/RaceEngine';
 
 const DOSSIERS = {
   ferrari: {
@@ -113,12 +114,17 @@ export default function App() {
   const [team, setTeam] = useState('ferrari');
   const [handData, setHandData] = useState({ x: 0.5 });
   const [transitioning, setTransitioning] = useState(false);
+  const [raceMode, setRaceMode] = useState(false);
   const videoRef = useRef(null);
 
   const changeTeam = (newTeam) => {
     if (newTeam === team) return;
     setTransitioning(true);
     setTimeout(() => { setTeam(newTeam); setTransitioning(false); }, 700);
+  };
+
+  const toggleRaceMode = () => {
+    setRaceMode(!raceMode);
   };
 
   const downloadResume = () => {
@@ -146,9 +152,17 @@ export default function App() {
 
   const d = DOSSIERS[team];
 
+  if (raceMode) {
+    return <RaceEngine team={team} teamColor={d.theme.main} onExit={() => setRaceMode(false)} />;
+  }
+
   return (
     <div className={`f1-dashboard ${transitioning ? 'warp-active' : ''}`}>
       <video ref={videoRef} className="camera-view" />
+      
+      <button className="race-mode-toggle" onClick={toggleRaceMode}>
+        🏁 RACE MODE
+      </button>
 
       <div className="hud-panel left overflow-y-auto max-h-75vh">
         <div className="label">{d.id} // {d.tag}</div>

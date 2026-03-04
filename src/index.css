@@ -1131,6 +1131,148 @@ button.active {
 }
 
 /* ========================================
+   RACE MODE COMPONENTS
+   ======================================== */
+.race-mode {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+
+.race-mode-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: var(--space-md) var(--space-xl);
+  background: linear-gradient(135deg, var(--team-color), rgba(255, 255, 255, 0.1));
+  border: 2px solid var(--team-color);
+  border-radius: var(--border-radius-md);
+  color: #fff;
+  font-weight: var(--weight-black);
+  font-size: var(--font-base);
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all var(--transition-base);
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+.race-mode-toggle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px var(--team-color), 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.race-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.speedometer {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
+  border: 4px solid var(--team-color);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 40px var(--team-bg), inset 0 0 30px rgba(0, 0, 0, 0.8);
+  animation: fadeIn 0.5s ease-out;
+}
+
+.speed-value {
+  font-size: 4rem;
+  font-weight: var(--weight-black);
+  color: var(--team-color);
+  line-height: 1;
+  text-shadow: 0 0 20px var(--team-bg);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.speed-label {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  letter-spacing: 0.2em;
+  margin-top: var(--space-xs);
+}
+
+.race-controls {
+  position: absolute;
+  top: 40px;
+  left: 40px;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-lg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: slideInLeft 0.6s ease-out;
+}
+
+.control-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  letter-spacing: 0.05em;
+}
+
+.control-hint:last-child {
+  margin-bottom: 0;
+}
+
+.control-hint .key {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--team-color);
+  border-radius: 4px;
+  color: var(--team-color);
+  font-weight: var(--weight-bold);
+  font-size: var(--font-xs);
+  min-width: 60px;
+  text-align: center;
+  box-shadow: 0 0 10px var(--team-bg);
+}
+
+.exit-race-btn {
+  position: absolute;
+  top: 40px;
+  right: 40px;
+  padding: var(--space-md) var(--space-xl);
+  background: rgba(255, 0, 0, 0.8);
+  border: 2px solid #ff0000;
+  border-radius: var(--border-radius-md);
+  color: #fff;
+  font-weight: var(--weight-black);
+  font-size: var(--font-base);
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all var(--transition-base);
+  animation: slideInRight 0.6s ease-out;
+}
+
+.exit-race-btn:hover {
+  background: rgba(255, 0, 0, 1);
+  transform: scale(1.05);
+  box-shadow: 0 0 30px #ff0000, 0 10px 30px rgba(255, 0, 0, 0.5);
+}
+
+/* ========================================
    RESPONSIVE DESIGN
    ======================================== */
 @media (max-width: 1024px) {
@@ -1187,6 +1329,37 @@ button.active {
   
   .hud-panel.right {
     right: var(--space-sm);
+  }
+
+  .speedometer {
+    width: 120px;
+    height: 120px;
+    bottom: 20px;
+    right: 20px;
+  }
+
+  .speed-value {
+    font-size: 2.5rem;
+  }
+
+  .race-controls {
+    left: 20px;
+    top: 20px;
+    padding: var(--space-md);
+  }
+
+  .exit-race-btn {
+    top: 20px;
+    right: 20px;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-xs);
+  }
+
+  .race-mode-toggle {
+    top: 10px;
+    right: 10px;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-xs);
   }
 }
 
