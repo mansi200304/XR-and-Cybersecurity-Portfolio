@@ -730,8 +730,29 @@ button.active {
   background: var(--team-color);
   border-color: var(--team-color);
   color: var(--text-primary);
-  box-shadow: 0 0 20px var(--team-bg), inset 0 0 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 20px var(--team-bg), 0 0 40px var(--team-bg), inset 0 0 20px rgba(0, 0, 0, 0.2);
   animation: pulse 2s ease-in-out infinite;
+  position: relative;
+  font-weight: var(--weight-black);
+}
+
+button.active::before {
+  width: 300px;
+  height: 300px;
+  opacity: 0.3;
+}
+
+button.active::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 2px solid var(--team-color);
+  border-radius: inherit;
+  opacity: 0.5;
+  animation: glowPulse 2s ease-in-out infinite;
 }
 
 .nav-btn {
@@ -966,65 +987,69 @@ button.active {
 .content-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--team-color) rgba(255, 255, 255, 0.05);
+  scroll-behavior: smooth;
 }
 
-.hud-panel.overflow-y-auto::before {
+/* Enhanced Scrollbar Styling */
+.content-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.content-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  margin: var(--space-sm) 0;
+}
+
+.content-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--team-color), rgba(255, 255, 255, 0.3));
+  border-radius: 3px;
+  transition: background var(--transition-base);
+}
+
+.content-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--team-color);
+  box-shadow: 0 0 8px var(--team-bg);
+}
+
+/* Gradient Overlays for Scroll Indication */
+.hud-panel.scrolled .content-scroll::before {
   content: '';
-  position: absolute;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
-  height: 30px;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--transition-base);
-  z-index: 10;
-}
-
-.hud-panel.overflow-y-auto::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
   height: 40px;
-  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.9));
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), transparent);
   pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--transition-base);
-  z-index: 10;
+  display: block;
+  margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-sm)) 0 0;
+  z-index: 5;
 }
 
-.hud-panel.overflow-y-auto:hover::after {
-  opacity: 1;
-}
-
-.hud-panel.overflow-y-auto.scrolled::before {
-  opacity: 1;
-}
-
-/* Smooth scroll behavior indicator */
-.content-scroll.has-scroll {
-  position: relative;
-}
-
+/* Scroll Indicator Arrow */
 .content-scroll.has-scroll::after {
-  content: '▼';
+  content: '⌄ SCROLL FOR MORE ⌄';
   position: sticky;
   bottom: 0;
   display: block;
   text-align: center;
   color: var(--team-color);
   font-size: var(--font-xs);
-  padding: var(--space-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.1em;
+  padding: var(--space-md) var(--space-sm);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95), transparent);
   animation: bounce 2s ease-in-out infinite;
-  opacity: 0.6;
+  opacity: 0.8;
   transition: opacity var(--transition-base);
+  margin: var(--space-md) calc(-1 * var(--space-sm)) calc(-1 * var(--space-lg)) 0;
+  pointer-events: none;
 }
 
-.content-scroll.has-scroll:hover::after {
-  opacity: 0.3;
+.content-scroll.has-scroll:hover::after,
+.content-scroll.has-scroll:focus::after {
+  opacity: 0.4;
 }
 
 /* ========================================
@@ -1273,99 +1298,452 @@ button.active {
 }
 
 /* ========================================
-   RESPONSIVE DESIGN
+   RESPONSIVE DESIGN - MOBILE FIRST
    ======================================== */
-@media (max-width: 1024px) {
+
+/* Mobile (320px - 767px) */
+@media (max-width: 767px) {
   :root {
-    --space-xl: 1rem;
-    --font-3xl: 1.75rem;
+    --space-xs: 0.25rem;
+    --space-sm: 0.375rem;
+    --space-md: 0.75rem;
+    --space-lg: 1rem;
+    --space-xl: 0.75rem;
+    --space-2xl: 1.5rem;
+    
+    --font-xs: 0.5rem;
+    --font-sm: 0.625rem;
+    --font-base: 0.75rem;
+    --font-md: 0.8rem;
+    --font-lg: 0.875rem;
+    --font-xl: 1rem;
+    --font-2xl: 1.125rem;
+    --font-3xl: 1.5rem;
+    --font-4xl: 1.75rem;
+  }
+
+  body {
+    font-size: 0.75rem;
   }
   
+  /* Layout adjustments for mobile */
+  .f1-dashboard {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* HUD panels stack vertically on mobile */
   .hud-panel {
-    width: 280px;
+    position: relative;
+    top: auto;
+    left: auto !important;
+    right: auto !important;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: var(--space-lg);
+    max-height: none;
+    border-radius: 0;
+    animation: fadeIn 0.4s ease-out;
+  }
+  
+  .hud-panel.left {
+    order: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   .hud-panel.right {
-    width: 240px;
-  }
-}
-
-@media (max-width: 768px) {
-  :root {
-    --space-xl: 0.75rem;
-    --font-3xl: 1.5rem;
-    --font-2xl: 1.25rem;
+    order: 3;
+    width: 100%;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
   
-  .hud-panel {
-    width: calc(100vw - 1.5rem);
-    max-width: 320px;
+  /* Mobile collapsible sections */
+  .hud-panel .label {
+    cursor: pointer;
+    padding: var(--space-sm) 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
   
+  .hud-panel .label::after {
+    content: '▼';
+    font-size: 0.5rem;
+    transition: transform var(--transition-base);
+  }
+  
+  .hud-panel.collapsed .label::after {
+    transform: rotate(-90deg);
+  }
+  
+  .hud-panel.collapsed .content-scroll {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  .content-scroll {
+    max-height: 60vh;
+    transition: max-height var(--transition-base), opacity var(--transition-base);
+  }
+  
+  .name {
+    font-size: var(--font-3xl);
+    margin-bottom: var(--space-sm);
+  }
+  
+  /* Canvas container for mobile */
+  .canvas-container {
+    order: 2;
+    position: relative;
+    height: 40vh;
+    min-height: 300px;
+  }
+  
+  /* Bottom bar repositioning */
   .bottom-bar {
-    bottom: 20px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.85));
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: var(--space-sm);
+    z-index: var(--z-nav);
   }
   
   .selector {
     gap: var(--space-xs);
+    padding: var(--space-sm);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
   
+  .selector::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Touch-friendly buttons (min 44px height) */
   button {
-    padding: var(--space-xs) var(--space-md);
+    min-height: 44px;
+    min-width: 44px;
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--font-xs);
+    white-space: nowrap;
+  }
+  
+  .selector button {
+    flex-shrink: 0;
+    padding: var(--space-md) var(--space-lg);
+  }
+  
+  .nav-btn {
+    min-height: 48px;
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--font-md);
+  }
+  
+  /* Camera view on mobile */
+  .camera-view {
+    width: 100px;
+    height: 75px;
+    bottom: 60px;
+    left: var(--space-sm);
+    border-width: 1px;
+  }
+  
+  /* Race mode adjustments */
+  .race-mode-toggle {
+    top: var(--space-sm);
+    right: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--font-xs);
+    min-height: 44px;
+  }
+  
+  .speedometer {
+    width: 100px;
+    height: 100px;
+    bottom: 80px;
+    right: var(--space-md);
+  }
+  
+  .speed-value {
+    font-size: 2rem;
+  }
+  
+  .race-controls {
+    left: var(--space-sm);
+    top: var(--space-sm);
+    padding: var(--space-md);
+    max-width: calc(100vw - 100px);
+  }
+  
+  .control-hint {
+    font-size: 0.65rem;
+    gap: var(--space-sm);
+  }
+  
+  .control-hint .key {
+    min-width: 50px;
+    padding: var(--space-xs);
+    font-size: 0.5rem;
+  }
+  
+  .exit-race-btn {
+    top: var(--space-sm);
+    right: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--font-xs);
+    min-height: 44px;
+  }
+  
+  /* Stat boxes on mobile */
+  .stat-box {
+    min-width: 70px;
+    padding: var(--space-sm);
+  }
+  
+  .stat-box strong {
+    font-size: var(--font-xl);
+  }
+  
+  /* Cards on mobile */
+  .project-card,
+  .edu-item,
+  .list-item {
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+  
+  .project-card {
+    padding: var(--space-md);
+  }
+  
+  .project-header,
+  .skill-header {
+    font-size: 0.65rem;
+  }
+  
+  .project-desc {
+    font-size: 0.65rem;
+  }
+  
+  .project-tech {
     font-size: 0.5rem;
   }
 }
 
-@media (max-width: 640px) {
-  .camera-view {
-    width: 120px;
-    bottom: 10px;
-    left: 10px;
+/* Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --space-xl: 1.25rem;
+    --font-3xl: 1.75rem;
+    --font-2xl: 1.375rem;
   }
   
-  .hud-panel.left {
-    left: var(--space-sm);
+  .hud-panel {
+    width: 280px;
+    max-height: 70vh;
   }
   
   .hud-panel.right {
-    right: var(--space-sm);
+    width: 260px;
   }
-
-  .speedometer {
-    width: 120px;
-    height: 120px;
-    bottom: 20px;
-    right: 20px;
+  
+  .hud-panel.left {
+    left: var(--space-md);
   }
-
-  .speed-value {
-    font-size: 2.5rem;
+  
+  .hud-panel.right {
+    right: var(--space-md);
   }
-
-  .race-controls {
-    left: 20px;
-    top: 20px;
-    padding: var(--space-md);
+  
+  /* Touch-friendly buttons for tablet */
+  button {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-lg);
   }
-
-  .exit-race-btn {
-    top: 20px;
-    right: 20px;
-    padding: var(--space-sm) var(--space-md);
-    font-size: var(--font-xs);
+  
+  .selector button {
+    padding: var(--space-md) var(--space-lg);
   }
+  
+  .bottom-bar {
+    bottom: 30px;
+  }
+  
+  .camera-view {
+    width: 140px;
+    bottom: 15px;
+    left: 15px;
+  }
+  
+  .canvas-container canvas {
+    cursor: grab;
+  }
+  
+  .canvas-container canvas:active {
+    cursor: grabbing;
+  }
+}
 
-  .race-mode-toggle {
-    top: 10px;
-    right: 10px;
-    padding: var(--space-sm) var(--space-md);
-    font-size: var(--font-xs);
+/* Desktop (1024px - 1439px) */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  :root {
+    --space-xl: 1.5rem;
+    --font-3xl: 2rem;
+  }
+  
+  .hud-panel {
+    width: 320px;
+  }
+  
+  .hud-panel.right {
+    width: 280px;
+  }
+  
+  button {
+    min-height: 40px;
+  }
+}
+
+/* Large Desktop (1440px+) */
+@media (min-width: 1440px) {
+  :root {
+    --space-xl: 2rem;
+    --font-3xl: 2.25rem;
+    --font-4xl: 3rem;
+  }
+  
+  .hud-panel {
+    width: 360px;
+    padding: var(--space-xl);
+  }
+  
+  .hud-panel.right {
+    width: 320px;
+  }
+  
+  .name {
+    font-size: var(--font-4xl);
+  }
+}
+
+/* Landscape mobile phones */
+@media (max-width: 767px) and (orientation: landscape) {
+  .canvas-container {
+    height: 100vh;
+    order: 1;
+  }
+  
+  .hud-panel.left {
+    order: 2;
+    max-height: 40vh;
+  }
+  
+  .hud-panel.right {
+    order: 3;
+    max-height: 30vh;
+  }
+  
+  .content-scroll {
+    max-height: 30vh;
+  }
+  
+  .camera-view {
+    width: 80px;
+    height: 60px;
+    bottom: 80px;
   }
 }
 
 /* ========================================
    ACCESSIBILITY
    ======================================== */
+
+/* Enhanced Focus Indicators */
+button:focus-visible,
+a:focus-visible,
+.content-scroll:focus-visible {
+  outline: 3px solid var(--team-color);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px var(--team-bg), 0 0 20px var(--team-color);
+  position: relative;
+  z-index: 100;
+}
+
+button:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--team-color);
+  border-radius: inherit;
+  animation: glowPulse 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.selector button:focus-visible {
+  transform: translateY(-3px) scale(1.05);
+}
+
+/* Cursor States */
+button,
+a,
+.stat-box,
+.project-card,
+.list-item,
+.edu-item {
+  cursor: pointer !important;
+}
+
+.content-scroll {
+  cursor: default !important;
+}
+
+.canvas-container,
+.canvas-container canvas {
+  cursor: grab !important;
+}
+
+.canvas-container canvas:active {
+  cursor: grabbing !important;
+}
+
+/* Link Styles */
+a {
+  color: var(--team-color);
+  text-decoration: none;
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--team-color);
+  transition: width var(--transition-base);
+}
+
+a:hover::after {
+  width: 100%;
+}
+
+a:hover {
+  color: var(--text-primary);
+  text-shadow: 0 0 10px var(--team-bg);
+}
+
+/* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1373,23 +1751,50 @@ button.active {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-}
-
-/* Focus Indicators */
-button:focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--team-color);
-  outline-offset: 2px;
+  
+  .bar-fill,
+  button::before,
+  .canvas-container {
+    animation: none !important;
+  }
 }
 
 /* High Contrast Mode Support */
 @media (prefers-contrast: high) {
   .hud-panel {
-    border-width: 2px;
+    border-width: 3px;
+    border-color: var(--team-color);
   }
   
   button {
+    border-width: 3px;
+  }
+  
+  .stat-box,
+  .project-card,
+  .list-item,
+  .edu-item {
     border-width: 2px;
   }
+}
+
+/* Keyboard Navigation Hints */
+.selector::before {
+  content: 'Use arrow keys or 1-7 to navigate';
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--font-xs);
+  color: var(--text-subtle);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  pointer-events: none;
+}
+
+.selector:focus-within::before {
+  opacity: 1;
 }

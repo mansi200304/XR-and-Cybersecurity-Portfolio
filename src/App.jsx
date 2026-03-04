@@ -99,8 +99,29 @@ function F1Vehicle({ team, handData, transitionActive }) {
       const targetRot = (handData.x - 0.5) * -3;
       group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetRot + Math.PI, 0.1);
     }
-    const targetCamZ = transitionActive ? 22 : 11;
+    
+    const isMobile = window.innerWidth <= 767;
+    const isTablet = window.innerWidth > 767 && window.innerWidth <= 1023;
+    
+    let targetCamZ, targetCamY;
+    if (transitionActive) {
+      targetCamZ = isMobile ? 18 : 22;
+      targetCamY = 3;
+    } else {
+      if (isMobile) {
+        targetCamZ = 14;
+        targetCamY = 2;
+      } else if (isTablet) {
+        targetCamZ = 12;
+        targetCamY = 2.5;
+      } else {
+        targetCamZ = 11;
+        targetCamY = 3;
+      }
+    }
+    
     state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, targetCamZ, 0.05);
+    state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, targetCamY, 0.05);
   });
 
   return (
@@ -115,7 +136,14 @@ export default function App() {
   const [handData, setHandData] = useState({ x: 0.5 });
   const [transitioning, setTransitioning] = useState(false);
   const [raceMode, setRaceMode] = useState(false);
+  const [hasScroll, setHasScroll] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const videoRef = useRef(null);
+  const contentScrollRef = useRef(null);
+  const selectorRef = useRef(null);
 
   const changeTeam = (newTeam) => {
     if (newTeam === team) return;
@@ -150,6 +178,57 @@ export default function App() {
     if (videoRef.current) tracker.start(videoRef.current);
   }, []);
 
+  useEffect(() => {
+    const checkScroll = () => {
+      const el = contentScrollRef.current;
+      if (el) {
+        setHasScroll(el.scrollHeight > el.clientHeight);
+        setIsScrolled(el.scrollTop > 10);
+      }
+    };
+    checkScroll();
+    const el = contentScrollRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkScroll);
+      return () => el.removeEventListener('scroll', checkScroll);
+    }
+  }, [team]);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 767);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    const teams = Object.keys(DOSSIERS);
+    const handleKeyDown = (e) => {
+      const currentIndex = teams.indexOf(team);
+      
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const nextTeam = teams[(currentIndex + 1) % teams.length];
+        changeTeam(nextTeam);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const prevTeam = teams[(currentIndex - 1 + teams.length) % teams.length];
+        changeTeam(prevTeam);
+      } else if (e.key >= '1' && e.key <= '7') {
+        e.preventDefault();
+        const index = parseInt(e.key) - 1;
+        if (teams[index]) {
+          changeTeam(teams[index]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [team]);
+
   const d = DOSSIERS[team];
 
   if (raceMode) {
@@ -157,94 +236,203 @@ export default function App() {
   }
 
   return (
-    <div className={`f1-dashboard ${transitioning ? 'warp-active' : ''}`}>
-      <video ref={videoRef} className="camera-view" />
+    <div className={`f1-dashboard ${transitioning ? 'warp-active' : ''}`} role="application" aria-label="F1 Style Portfolio Dashboard">
+      <video 
+        ref={videoRef} 
+        className="camera-view" 
+        aria-label="Hand tracking camera feed"
+        aria-hidden="true"
+      />
       
-      <button className="race-mode-toggle" onClick={toggleRaceMode}>
+      <button 
+        className="race-mode-toggle" 
+        onClick={toggleRaceMode}
+        aria-label="Toggle race mode"
+        type="button"
+      >
         🏁 RACE MODE
       </button>
 
-      <div className="hud-panel left overflow-y-auto max-h-75vh">
-        <div className="label">{d.id} // {d.tag}</div>
-        <h1 className="name">{d.title}</h1>
-        <div className="divider" />
+      <section 
+        className={`hud-panel left overflow-y-auto max-h-75vh ${isScrolled ? 'scrolled' : ''} ${leftPanelCollapsed ? 'collapsed' : ''}`}
+        aria-label="Main portfolio content"
+        role="region"
+      >
+        <header>
+          <div 
+            className="label" 
+            aria-label={`Section ${d.id}: ${d.tag}`}
+            onClick={() => isMobile && setLeftPanelCollapsed(!leftPanelCollapsed)}
+            role={isMobile ? 'button' : undefined}
+            tabIndex={isMobile ? 0 : undefined}
+            onKeyDown={(e) => isMobile && (e.key === 'Enter' || e.key === ' ') && setLeftPanelCollapsed(!leftPanelCollapsed)}
+          >
+            {d.id} // {d.tag}
+          </div>
+          <h1 className="name">{d.title}</h1>
+          <div className="divider" role="separator" aria-hidden="true" />
+        </header>
         
-        <div className="content-scroll">
+        <div 
+          className={`content-scroll ${hasScroll ? 'has-scroll' : ''}`} 
+          ref={contentScrollRef}
+          role="article"
+          tabIndex="0"
+          aria-label={`${d.tag} details`}
+        >
           {team === 'ferrari' && (
             <>
               <p className="sub mb-4">{d.team} • {d.specialty}</p>
               <p className="content-body mb-6">{d.bio}</p>
-              <div className="flex flex-wrap gap-2 mb-6">
-                {d.stats.map(s => <div key={s.label} className="stat-box"><strong>{s.val}</strong><span>{s.label}</span></div>)}
+              <div className="flex flex-wrap gap-2 mb-6" role="list" aria-label="Key statistics">
+                {d.stats.map(s => (
+                  <div key={s.label} className="stat-box" role="listitem" aria-label={`${s.val} ${s.label}`}>
+                    <strong>{s.val}</strong>
+                    <span>{s.label}</span>
+                  </div>
+                ))}
               </div>
-              {d.education.map(e => <div key={e.degree} className="edu-item">🎓 {e.degree}<br/><small>{e.school} | {e.date}</small></div>)}
+              <div role="list" aria-label="Education history">
+                {d.education.map(e => (
+                  <div key={e.degree} className="edu-item" role="listitem">
+                    🎓 {e.degree}<br/>
+                    <small>{e.school} | {e.date}</small>
+                  </div>
+                ))}
+              </div>
             </>
           )}
 
-          {team === 'mercedes' && d.projects.map(p => (
-            <div key={p.name} className="project-card">
-              <div className="project-header"><span>{p.name}</span><span>{p.lap}</span></div>
-              <p className="project-desc">{p.desc}</p>
-              <div className="project-tech">{p.tech}</div>
+          {team === 'mercedes' && (
+            <div role="list" aria-label="Major projects">
+              {d.projects.map(p => (
+                <article key={p.name} className="project-card" role="listitem">
+                  <div className="project-header"><span>{p.name}</span><span>{p.lap}</span></div>
+                  <p className="project-desc">{p.desc}</p>
+                  <div className="project-tech" aria-label={`Technologies: ${p.tech}`}>{p.tech}</div>
+                </article>
+              ))}
             </div>
-          ))}
+          )}
 
-          {team === 'redbull' && d.skills.map(s => (
-            <div key={s.name} className="skill-row">
-              <div className="skill-header"><span>{s.name}</span><span>{s.p}</span></div>
-              <div className="bar"><div className="bar-fill" style={{width: s.p}}/></div>
+          {team === 'redbull' && (
+            <div role="list" aria-label="Technical skills">
+              {d.skills.map(s => (
+                <div key={s.name} className="skill-row" role="listitem">
+                  <div className="skill-header"><span>{s.name}</span><span>{s.p}</span></div>
+                  <div className="bar" role="progressbar" aria-valuenow={parseInt(s.p)} aria-valuemin="0" aria-valuemax="100" aria-label={`${s.name} proficiency`}>
+                    <div className="bar-fill" style={{width: s.p}}/>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
 
-          {team === 'mclaren' && d.list.map(l => (
-            <div key={l.title} className="list-item">
-               <div className="list-item-title">📄 {l.title}</div>
-               <div className="list-item-venue">{l.venue}</div>
+          {team === 'mclaren' && (
+            <div role="list" aria-label="Publications and patents">
+              {d.list.map(l => (
+                <article key={l.title} className="list-item" role="listitem">
+                  <div className="list-item-title">📄 {l.title}</div>
+                  <div className="list-item-venue">{l.venue}</div>
+                </article>
+              ))}
             </div>
-          ))}
+          )}
 
-          {team === 'alpine' && d.history.map(h => (
-            <div key={h.co} className="list-item">
-              <div className="list-item-role">🏆 {h.role}</div>
-              <div className="list-item-company">{h.co} • {h.date}</div>
+          {team === 'alpine' && (
+            <div role="list" aria-label="Work experience">
+              {d.history.map(h => (
+                <article key={h.co} className="list-item" role="listitem">
+                  <div className="list-item-role">🏆 {h.role}</div>
+                  <div className="list-item-company">{h.co} • {h.date}</div>
+                </article>
+              ))}
             </div>
-          ))}
+          )}
 
           {team === 'aston' && (
-             <div className="contact-info">
-               <p className="mb-2">📧 {d.contact.email}</p>
-               <p className="mb-2">📱 {d.contact.phone}</p>
-               <p className="contact-location">📍 {d.contact.loc} • {d.contact.availability}</p>
+             <address className="contact-info" aria-label="Contact information">
+               <p className="mb-2">
+                 <span aria-label="Email">📧</span> 
+                 <a href={`mailto:${d.contact.email}`} aria-label={`Email: ${d.contact.email}`}>{d.contact.email}</a>
+               </p>
+               <p className="mb-2">
+                 <span aria-label="Phone">📱</span> 
+                 <a href={`tel:${d.contact.phone.replace(/[^0-9]/g, '')}`} aria-label={`Phone: ${d.contact.phone}`}>{d.contact.phone}</a>
+               </p>
+               <p className="contact-location">
+                 <span aria-label="Location">📍</span> {d.contact.loc} • {d.contact.availability}
+               </p>
                <div className="flex flex-col gap-2">
-                 <button className="nav-btn" onClick={downloadResume}>DOWNLOAD RESUME</button>
+                 <button 
+                   className="nav-btn" 
+                   onClick={downloadResume}
+                   type="button"
+                   aria-label="Download resume as PDF"
+                 >
+                   DOWNLOAD RESUME
+                 </button>
                </div>
-             </div>
+             </address>
           )}
         </div>
-      </div>
+      </section>
 
-      <div className="hud-panel right">
-        <div className="label">STATUS</div>
-        <div className="skill-meter mt-4">
-          <span className="status-label">SKILLS_LOADED</span>
-          <div className="bar"><div className="bar-fill" style={{width: '100%'}}/></div>
+      <aside className={`hud-panel right ${rightPanelCollapsed ? 'collapsed' : ''}`} role="complementary" aria-label="Status information">
+        <div 
+          className="label"
+          onClick={() => isMobile && setRightPanelCollapsed(!rightPanelCollapsed)}
+          role={isMobile ? 'button' : undefined}
+          tabIndex={isMobile ? 0 : undefined}
+          onKeyDown={(e) => isMobile && (e.key === 'Enter' || e.key === ' ') && setRightPanelCollapsed(!rightPanelCollapsed)}
+        >
+          STATUS
         </div>
-        <p className="status-tagline">ENGINEERING PRECISION<br/>MEETS CREATIVE SPEED</p>
-      </div>
+        <div className="content-scroll">
+          <div className="skill-meter mt-4">
+            <span className="status-label">SKILLS_LOADED</span>
+            <div className="bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" aria-label="System status">
+              <div className="bar-fill" style={{width: '100%'}}/>
+            </div>
+          </div>
+          <p className="status-tagline">ENGINEERING PRECISION<br/>MEETS CREATIVE SPEED</p>
+        </div>
+      </aside>
 
-      <div className="bottom-bar">
-        <div className="selector">
-          {Object.keys(DOSSIERS).map(t => (
-            <button key={t} onClick={() => changeTeam(t)} className={team === t ? 'active' : ''}>
+      <nav className="bottom-bar" aria-label="Team navigation">
+        <div 
+          className="selector" 
+          ref={selectorRef}
+          role="tablist" 
+          aria-label="Select team to view different portfolio sections"
+        >
+          {Object.keys(DOSSIERS).map((t, index) => (
+            <button 
+              key={t} 
+              onClick={() => changeTeam(t)} 
+              className={team === t ? 'active' : ''}
+              type="button"
+              role="tab"
+              aria-selected={team === t}
+              aria-controls={`${t}-content`}
+              aria-label={`${t.charAt(0).toUpperCase() + t.slice(1)} team - ${DOSSIERS[t].tag} (Press ${index + 1})`}
+              tabIndex={team === t ? 0 : -1}
+            >
               {t.toUpperCase()}
             </button>
           ))}
         </div>
-      </div>
+      </nav>
 
       <div className="canvas-container">
         <ErrorBoundary>
-          <Canvas shadows camera={{ position: [0, 3, 11], fov: 45 }}>
+          <Canvas 
+            shadows 
+            camera={{ 
+              position: [0, isMobile ? 2 : 3, isMobile ? 14 : 11], 
+              fov: isMobile ? 50 : 45 
+            }}
+          >
             <Suspense fallback={null}>
               <F1Vehicle team={team} handData={handData} transitionActive={transitioning} />
               <Stars radius={100} depth={transitioning ? 200 : 50} count={transitioning ? 15000 : 5000} factor={transitioning ? 25 : 4} fade />
