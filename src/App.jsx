@@ -1,10 +1,10 @@
-import React, { Suspense, useRef, useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Stars, useGLTF, Environment, ContactShadows, Float } from '@react-three/drei';
+import { Stars, useGLTF, Environment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { HandTracker } from './HandTracker';
 import ErrorBoundary from './components/ErrorBoundary';
-import RaceEngine from './components/Game/RaceEngine';
+import ProceduralF1Car from './components/Game/ProceduralF1Car';
 
 const BREAKPOINT_MOBILE = 767;
 const BREAKPOINT_TABLET = 1023;
@@ -14,12 +14,13 @@ const MODEL_SCALE = 2.8;
 const AUTO_ROTATION_SPEED = 0.18;
 const CAMERA_LERP = 0.05;
 const HAND_ROT_LERP = 0.1;
+const PROCEDURAL_TEAMS = ['mclaren', 'alpine'];
 
 const CAMERA_POSITIONS = {
-  mobile:     { z: 14, y: 2,   x: 0, fov: 50 },
-  tablet:     { z: 12, y: 2.5, x: 0 },
-  desktop:    { z: 10, y: 2.2, x: 0, fov: 42 },
-  transition: { z: 22, y: 3,   x: 0 },
+  mobile:           { z: 14, y: 2,   x: 0, fov: 50 },
+  tablet:           { z: 12, y: 2.5, x: 0 },
+  desktop:          { z: 10, y: 2.2, x: 0, fov: 42 },
+  transition:       { z: 22, y: 3,   x: 0 },
   transitionMobile: { z: 18 },
 };
 
@@ -33,9 +34,9 @@ const DOSSIERS = {
     id: "02",
     tag: "DRIVER PROFILE",
     title: "MANSI NAYAK",
-    team: "ASU Mesh Labs",
     specialty: "XR + Security",
-    bio: "Engineering immersive experiences at the intersection of art, code, and security. Master's student specializing in XR development with expertise in Unity, Unreal Engine, and real-time rendering.",
+    quote: "Straight roads are for fast cars, turns are for fast drivers.",
+    bio: "Engineering immersive experiences at the intersection of art, code, and security. Master's student at Arizona State University specializing in XR development with expertise in Unity, Unreal Engine, and real-time rendering.",
     stats: [
       { label: "Publications", val: "6" },
       { label: "Patent", val: "1" },
@@ -52,6 +53,7 @@ const DOSSIERS = {
     id: "03",
     tag: "THE PODIUM",
     title: "MAJOR PROJECTS",
+    quote: "Racing, competing, it's in my blood. It's part of me, it's part of my life; I have been doing it all my life and it stands out above everything else.",
     projects: [
       { name: "P1: VR Security Training", tech: "Unity • VFX Graph • Blender", lap: "6 Months", desc: "Created particle effects, custom shaders, and optimized for 90fps VR." },
       { name: "P2: Real-Time Env Sim", tech: "Unreal • Niagara • 3ds Max", lap: "8 Months", desc: "Built procedural environmental effects for AV perception testing (Springer 2026)." },
@@ -116,7 +118,6 @@ function SceneLighting({ teamColor, transitionActive }) {
     <>
       <ambientLight intensity={0.12} />
       <directionalLight position={[-6, 10, -6]} intensity={0.45} color="#9ab8f0" />
-
       <spotLight
         position={[2, 12, 9]}
         intensity={transitionActive ? 5 : 3}
@@ -128,45 +129,16 @@ function SceneLighting({ teamColor, transitionActive }) {
         shadow-mapSize-height={2048}
         shadow-bias={-0.0005}
       />
-
-      <spotLight
-        position={[-11, 6, -4]}
-        intensity={2.2}
-        color="#b8d4ff"
-        angle={0.4}
-        penumbra={1}
-      />
-
-      <spotLight
-        position={[11, 6, -4]}
-        intensity={1.8}
-        color={teamColor}
-        angle={0.4}
-        penumbra={1}
-      />
-
-      <pointLight
-        position={[0, -0.7, 0]}
-        intensity={transitionActive ? 4 : 1.5}
-        color={teamColor}
-        distance={7}
-        decay={2}
-      />
-
-      <pointLight
-        position={[0, 4, -9]}
-        intensity={1}
-        color={teamColor}
-        distance={18}
-        decay={2}
-      />
+      <spotLight position={[-11, 6, -4]} intensity={2.2} color="#b8d4ff" angle={0.4} penumbra={1} />
+      <spotLight position={[11, 6, -4]} intensity={1.8} color={teamColor} angle={0.4} penumbra={1} />
+      <pointLight position={[0, -0.7, 0]} intensity={transitionActive ? 4 : 1.5} color={teamColor} distance={7} decay={2} />
+      <pointLight position={[0, 4, -9]} intensity={1} color={teamColor} distance={18} decay={2} />
     </>
   );
 }
 
 function SpeedLines({ active, color }) {
   const meshRef = useRef();
-
   const positions = useMemo(() => {
     const count = 160;
     const arr = new Float32Array(count * 6);
@@ -188,120 +160,181 @@ function SpeedLines({ active, color }) {
   useFrame(() => {
     if (!meshRef.current) return;
     const target = active ? 0.45 : 0;
-    meshRef.current.material.opacity = THREE.MathUtils.lerp(
-      meshRef.current.material.opacity, target, 0.12
-    );
+    meshRef.current.material.opacity = THREE.MathUtils.lerp(meshRef.current.material.opacity, target, 0.12);
   });
 
   return (
     <lineSegments ref={meshRef}>
       <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          array={positions}
-          count={positions.length / 3}
-          itemSize={3}
-        />
+        <bufferAttribute attach="attributes-position" array={positions} count={positions.length / 3} itemSize={3} />
       </bufferGeometry>
-      <lineBasicMaterial
-        color={color}
-        transparent
-        opacity={0}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
+      <lineBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
     </lineSegments>
   );
 }
 
 function GroundGlow({ teamColor, transitionActive }) {
   const meshRef = useRef();
-
   useFrame(() => {
     if (!meshRef.current) return;
     const target = transitionActive ? 0.7 : 0.35;
-    meshRef.current.material.opacity = THREE.MathUtils.lerp(
-      meshRef.current.material.opacity, target, 0.06
-    );
+    meshRef.current.material.opacity = THREE.MathUtils.lerp(meshRef.current.material.opacity, target, 0.06);
   });
-
   return (
     <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.47, 0]}>
       <circleGeometry args={[5, 64]} />
-      <meshBasicMaterial
-        color={teamColor}
-        transparent
-        opacity={0.35}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
+      <meshBasicMaterial color={teamColor} transparent opacity={0.35} depthWrite={false} blending={THREE.AdditiveBlending} />
     </mesh>
   );
 }
 
-function F1Vehicle({ team, handData, transitionActive }) {
-  const group = useRef();
+function VehicleGLB({ team }) {
   const { scene } = useGLTF(`/models/${team}.glb`);
+  return <primitive object={scene} scale={MODEL_SCALE} />;
+}
+
+function VehicleContent({ team }) {
+  if (PROCEDURAL_TEAMS.includes(team)) {
+    return <ProceduralF1Car color={DOSSIERS[team].theme.main} scale={2.5} />;
+  }
+  return <VehicleGLB team={team} />;
+}
+
+function F1Vehicle({ team, handData, transitionActive, freeRoamRef, onFreeRoamChange }) {
+  const outerRef = useRef();
+  const wasdKeys = useRef({});
+  const carSpeed = useRef(0);
+  const carPosX = useRef(0);
+  const carPosZ = useRef(0);
+  const carRot = useRef(0);
+  const floatTime = useRef(0);
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      wasdKeys.current[e.code] = true;
+      if (['KeyW', 'KeyS', 'KeyA', 'KeyD'].includes(e.code)) {
+        freeRoamRef.current = true;
+        onFreeRoamChange(true);
+      }
+      if (e.code === 'Escape') {
+        freeRoamRef.current = false;
+        carPosX.current = 0;
+        carPosZ.current = 0;
+        carRot.current = 0;
+        carSpeed.current = 0;
+        onFreeRoamChange(false);
+      }
+    };
+    const onKeyUp = (e) => { wasdKeys.current[e.code] = false; };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, [freeRoamRef, onFreeRoamChange]);
 
   useFrame((state, delta) => {
-    if (!group.current) return;
+    if (!outerRef.current) return;
 
-    if (handData?.x && !transitionActive) {
-      const targetRot = (handData.x - 0.5) * -3;
-      group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetRot + Math.PI, HAND_ROT_LERP);
+    if (freeRoamRef.current) {
+      const maxSpeed = 0.14;
+      if (wasdKeys.current['KeyW']) {
+        carSpeed.current = Math.min(carSpeed.current + 0.007, maxSpeed);
+      } else if (wasdKeys.current['KeyS']) {
+        carSpeed.current = Math.max(carSpeed.current - 0.009, -maxSpeed * 0.4);
+      } else {
+        carSpeed.current *= 0.97;
+        if (Math.abs(carSpeed.current) < 0.0005) carSpeed.current = 0;
+      }
+
+      if (wasdKeys.current['KeyA']) carRot.current += 0.034;
+      if (wasdKeys.current['KeyD']) carRot.current -= 0.034;
+
+      carPosX.current -= Math.sin(carRot.current) * carSpeed.current;
+      carPosZ.current -= Math.cos(carRot.current) * carSpeed.current;
+      carPosX.current = THREE.MathUtils.clamp(carPosX.current, -35, 35);
+      carPosZ.current = THREE.MathUtils.clamp(carPosZ.current, -35, 35);
+
+      outerRef.current.position.set(carPosX.current, 0, carPosZ.current);
+      outerRef.current.rotation.y = carRot.current;
+
+      const camX = carPosX.current + Math.sin(carRot.current) * 9;
+      const camZ = carPosZ.current + Math.cos(carRot.current) * 9;
+      state.camera.position.lerp(new THREE.Vector3(camX, 4.5, camZ), 0.07);
+      state.camera.lookAt(
+        carPosX.current - Math.sin(carRot.current) * 4,
+        0.5,
+        carPosZ.current - Math.cos(carRot.current) * 4
+      );
     } else {
-      group.current.rotation.y += delta * AUTO_ROTATION_SPEED;
+      floatTime.current += delta;
+      outerRef.current.position.set(0, Math.sin(floatTime.current * 1.2) * 0.18, 0);
+
+      if (handData.detected && !transitionActive) {
+        const targetRot = (handData.x - 0.5) * -3;
+        const pitchTarget = handData.y !== undefined ? (handData.y - 0.5) * 0.25 : 0;
+        outerRef.current.rotation.y = THREE.MathUtils.lerp(outerRef.current.rotation.y, targetRot + Math.PI, HAND_ROT_LERP);
+        outerRef.current.rotation.x = THREE.MathUtils.lerp(outerRef.current.rotation.x, pitchTarget, 0.05);
+      } else {
+        outerRef.current.rotation.y += delta * AUTO_ROTATION_SPEED;
+        outerRef.current.rotation.x = THREE.MathUtils.lerp(outerRef.current.rotation.x, 0, 0.05);
+      }
+
+      const isMobile = window.innerWidth <= BREAKPOINT_MOBILE;
+      const isTablet = window.innerWidth > BREAKPOINT_MOBILE && window.innerWidth <= BREAKPOINT_TABLET;
+      let cam;
+      if (transitionActive) {
+        cam = isMobile
+          ? { z: CAMERA_POSITIONS.transitionMobile.z, y: CAMERA_POSITIONS.transition.y, x: 0 }
+          : CAMERA_POSITIONS.transition;
+      } else if (isMobile) {
+        cam = CAMERA_POSITIONS.mobile;
+      } else if (isTablet) {
+        cam = CAMERA_POSITIONS.tablet;
+      } else {
+        cam = CAMERA_POSITIONS.desktop;
+      }
+      state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, cam.x, CAMERA_LERP);
+      state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, cam.y, CAMERA_LERP);
+      state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, cam.z, CAMERA_LERP);
+      state.camera.lookAt(0, 0.5, 0);
     }
-
-    const isMobile = window.innerWidth <= BREAKPOINT_MOBILE;
-    const isTablet = window.innerWidth > BREAKPOINT_MOBILE && window.innerWidth <= BREAKPOINT_TABLET;
-
-    let cam;
-    if (transitionActive) {
-      cam = isMobile ? { z: CAMERA_POSITIONS.transitionMobile.z, y: CAMERA_POSITIONS.transition.y, x: CAMERA_POSITIONS.transition.x } : CAMERA_POSITIONS.transition;
-    } else if (isMobile) {
-      cam = CAMERA_POSITIONS.mobile;
-    } else if (isTablet) {
-      cam = CAMERA_POSITIONS.tablet;
-    } else {
-      cam = CAMERA_POSITIONS.desktop;
-    }
-
-    state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, cam.z, CAMERA_LERP);
-    state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, cam.y, CAMERA_LERP);
-    state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, cam.x, CAMERA_LERP);
-    state.camera.lookAt(0, 0.5, 0);
   });
 
   return (
-    <Float speed={1.2} rotationIntensity={0.1} floatIntensity={0.35}>
-      <primitive ref={group} object={scene} scale={MODEL_SCALE} />
-    </Float>
+    <group ref={outerRef}>
+      <VehicleContent team={team} />
+    </group>
   );
 }
 
 export default function App() {
   const [team, setTeam] = useState('ferrari');
-  const [handData, setHandData] = useState({ x: 0.5 });
+  const [handData, setHandData] = useState({ detected: false, x: 0.5, y: 0.5 });
   const [transitioning, setTransitioning] = useState(false);
-  const [raceMode, setRaceMode] = useState(false);
   const [hasScroll, setHasScroll] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [freeRoaming, setFreeRoaming] = useState(false);
+
   const videoRef = useRef(null);
   const contentScrollRef = useRef(null);
   const selectorRef = useRef(null);
+  const freeRoamRef = useRef(false);
+  const handTimeoutRef = useRef(null);
+
+  const handleFreeRoamChange = useCallback((val) => {
+    freeRoamRef.current = val;
+    setFreeRoaming(val);
+  }, []);
 
   const changeTeam = (newTeam) => {
     if (newTeam === team) return;
     setTransitioning(true);
     setTimeout(() => { setTeam(newTeam); setTransitioning(false); }, TEAM_TRANSITION_MS);
-  };
-
-  const toggleRaceMode = () => {
-    setRaceMode(!raceMode);
   };
 
   const downloadResume = () => {
@@ -322,9 +355,18 @@ export default function App() {
 
   useEffect(() => {
     const tracker = new HandTracker((res) => {
-      if (res.multiHandLandmarks?.[0]) setHandData(res.multiHandLandmarks[0][HAND_TIP_INDEX]);
+      if (res.multiHandLandmarks?.[0]) {
+        const lm = res.multiHandLandmarks[0];
+        const tip = lm[HAND_TIP_INDEX];
+        clearTimeout(handTimeoutRef.current);
+        handTimeoutRef.current = setTimeout(() => {
+          setHandData(prev => ({ ...prev, detected: false }));
+        }, 600);
+        setHandData({ detected: true, x: tip.x, y: tip.y });
+      }
     });
     if (videoRef.current) tracker.start(videoRef.current);
+    return () => clearTimeout(handTimeoutRef.current);
   }, []);
 
   useEffect(() => {
@@ -344,9 +386,7 @@ export default function App() {
   }, [team]);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= BREAKPOINT_MOBILE);
-    };
+    const checkMobile = () => setIsMobile(window.innerWidth <= BREAKPOINT_MOBILE);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -355,61 +395,81 @@ export default function App() {
   useEffect(() => {
     const teams = Object.keys(DOSSIERS);
     const handleKeyDown = (e) => {
+      if (freeRoamRef.current) return;
       const currentIndex = teams.indexOf(team);
-      
       if (e.key === 'ArrowRight') {
         e.preventDefault();
-        const nextTeam = teams[(currentIndex + 1) % teams.length];
-        changeTeam(nextTeam);
+        changeTeam(teams[(currentIndex + 1) % teams.length]);
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        const prevTeam = teams[(currentIndex - 1 + teams.length) % teams.length];
-        changeTeam(prevTeam);
+        changeTeam(teams[(currentIndex - 1 + teams.length) % teams.length]);
       } else if (e.key >= '1' && e.key <= '7') {
         e.preventDefault();
         const index = parseInt(e.key) - 1;
-        if (teams[index]) {
-          changeTeam(teams[index]);
-        }
+        if (teams[index]) changeTeam(teams[index]);
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [team]);
 
   const d = DOSSIERS[team];
 
-  if (raceMode) {
-    return <RaceEngine team={team} teamColor={d.theme.main} onExit={() => setRaceMode(false)} />;
-  }
-
   return (
     <div className={`f1-dashboard ${transitioning ? 'warp-active' : ''}`} role="application" aria-label="F1 Style Portfolio Dashboard">
-      <video 
-        ref={videoRef} 
-        className="camera-view" 
+      <video
+        ref={videoRef}
+        className="camera-view"
         aria-label="Hand tracking camera feed"
         aria-hidden="true"
+        autoPlay
+        muted
+        playsInline
       />
-      
-      <button 
-        className="race-mode-toggle" 
-        onClick={toggleRaceMode}
-        aria-label="Toggle race mode"
-        type="button"
-      >
-        🏁 RACE MODE
-      </button>
 
-      <section 
+      <div className={`hand-tracking-box ${handData.detected ? 'hand-active' : ''} ${freeRoaming ? 'drive-mode' : ''}`}>
+        {freeRoaming ? (
+          <>
+            <div className="ht-header drive">🏎 DRIVE MODE</div>
+            <div className="ht-keys">
+              <span><kbd>W</kbd> Forward</span>
+              <span><kbd>S</kbd> Brake</span>
+              <span><kbd>A</kbd><kbd>D</kbd> Steer</span>
+              <span><kbd>ESC</kbd> Exit</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="ht-header">
+              <span className={`ht-dot ${handData.detected ? 'live' : ''}`} />
+              HAND CONTROL
+            </div>
+            <div className="ht-status">{handData.detected ? 'HAND DETECTED' : 'STANDBY'}</div>
+            {handData.detected && (
+              <div className="ht-bar-wrap">
+                <span className="ht-bar-label">← INDEX →</span>
+                <div className="ht-bar">
+                  <div className="ht-bar-fill" style={{ left: `${handData.x * 100}%` }} />
+                </div>
+              </div>
+            )}
+            <div className="ht-divider" />
+            <div className="ht-keys">
+              <span><kbd>WASD</kbd> Drive car</span>
+              <span><kbd>← →</kbd> Switch team</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      <section
         className={`hud-panel left overflow-y-auto max-h-75vh ${isScrolled ? 'scrolled' : ''} ${leftPanelCollapsed ? 'collapsed' : ''}`}
         aria-label="Main portfolio content"
         role="region"
       >
         <header>
-          <div 
-            className="label" 
+          <div
+            className="label"
             aria-label={`Section ${d.id}: ${d.tag}`}
             onClick={() => isMobile && setLeftPanelCollapsed(!leftPanelCollapsed)}
             role={isMobile ? 'button' : undefined}
@@ -421,9 +481,9 @@ export default function App() {
           <h1 className="name">{d.title}</h1>
           <div className="divider" role="separator" aria-hidden="true" />
         </header>
-        
-        <div 
-          className={`content-scroll ${hasScroll ? 'has-scroll' : ''}`} 
+
+        <div
+          className={`content-scroll ${hasScroll ? 'has-scroll' : ''}`}
           ref={contentScrollRef}
           role="article"
           tabIndex="0"
@@ -431,7 +491,8 @@ export default function App() {
         >
           {team === 'ferrari' && (
             <>
-              <p className="sub mb-4">{d.team} • {d.specialty}</p>
+              <blockquote className="f1-quote">"{d.quote}"</blockquote>
+              <p className="sub mb-4">Arizona State University • {d.specialty}</p>
               <p className="content-body mb-6">{d.bio}</p>
               <div className="flex flex-wrap gap-2 mb-6" role="list" aria-label="Key statistics">
                 {d.stats.map(s => (
@@ -444,7 +505,7 @@ export default function App() {
               <div role="list" aria-label="Education history">
                 {d.education.map(e => (
                   <div key={e.degree} className="edu-item" role="listitem">
-                    🎓 {e.degree}<br/>
+                    🎓 {e.degree}<br />
                     <small>{e.school} | {e.date}</small>
                   </div>
                 ))}
@@ -453,15 +514,18 @@ export default function App() {
           )}
 
           {team === 'mercedes' && (
-            <div role="list" aria-label="Major projects">
-              {d.projects.map(p => (
-                <article key={p.name} className="project-card" role="listitem">
-                  <div className="project-header"><span>{p.name}</span><span>{p.lap}</span></div>
-                  <p className="project-desc">{p.desc}</p>
-                  <div className="project-tech" aria-label={`Technologies: ${p.tech}`}>{p.tech}</div>
-                </article>
-              ))}
-            </div>
+            <>
+              <blockquote className="f1-quote">"{d.quote}"</blockquote>
+              <div role="list" aria-label="Major projects">
+                {d.projects.map(p => (
+                  <article key={p.name} className="project-card" role="listitem">
+                    <div className="project-header"><span>{p.name}</span><span>{p.lap}</span></div>
+                    <p className="project-desc">{p.desc}</p>
+                    <div className="project-tech" aria-label={`Technologies: ${p.tech}`}>{p.tech}</div>
+                  </article>
+                ))}
+              </div>
+            </>
           )}
 
           {team === 'redbull' && (
@@ -470,7 +534,7 @@ export default function App() {
                 <div key={s.name} className="skill-row" role="listitem">
                   <div className="skill-header"><span>{s.name}</span><span>{s.p}</span></div>
                   <div className="bar" role="progressbar" aria-valuenow={parseInt(s.p)} aria-valuemin="0" aria-valuemax="100" aria-label={`${s.name} proficiency`}>
-                    <div className="bar-fill" style={{width: s.p}}/>
+                    <div className="bar-fill" style={{ width: s.p }} />
                   </div>
                 </div>
               ))}
@@ -500,35 +564,30 @@ export default function App() {
           )}
 
           {team === 'aston' && (
-             <address className="contact-info" aria-label="Contact information">
-               <p className="mb-2">
-                 <span aria-label="Email">📧</span> 
-                 <a href={`mailto:${d.contact.email}`} aria-label={`Email: ${d.contact.email}`}>{d.contact.email}</a>
-               </p>
-               <p className="mb-2">
-                 <span aria-label="Phone">📱</span> 
-                 <a href={`tel:${d.contact.phone.replace(/[^0-9]/g, '')}`} aria-label={`Phone: ${d.contact.phone}`}>{d.contact.phone}</a>
-               </p>
-               <p className="contact-location">
-                 <span aria-label="Location">📍</span> {d.contact.loc} • {d.contact.availability}
-               </p>
-               <div className="flex flex-col gap-2">
-                 <button 
-                   className="nav-btn" 
-                   onClick={downloadResume}
-                   type="button"
-                   aria-label="Download resume as PDF"
-                 >
-                   DOWNLOAD RESUME
-                 </button>
-               </div>
-             </address>
+            <address className="contact-info" aria-label="Contact information">
+              <p className="mb-2">
+                <span aria-label="Email">📧</span>
+                <a href={`mailto:${d.contact.email}`} aria-label={`Email: ${d.contact.email}`}>{d.contact.email}</a>
+              </p>
+              <p className="mb-2">
+                <span aria-label="Phone">📱</span>
+                <a href={`tel:${d.contact.phone.replace(/[^0-9]/g, '')}`} aria-label={`Phone: ${d.contact.phone}`}>{d.contact.phone}</a>
+              </p>
+              <p className="contact-location">
+                <span aria-label="Location">📍</span> {d.contact.loc} • {d.contact.availability}
+              </p>
+              <div className="flex flex-col gap-2">
+                <button className="nav-btn" onClick={downloadResume} type="button" aria-label="Download resume as PDF">
+                  DOWNLOAD RESUME
+                </button>
+              </div>
+            </address>
           )}
         </div>
       </section>
 
       <aside className={`hud-panel right ${rightPanelCollapsed ? 'collapsed' : ''}`} role="complementary" aria-label="Status information">
-        <div 
+        <div
           className="label"
           onClick={() => isMobile && setRightPanelCollapsed(!rightPanelCollapsed)}
           role={isMobile ? 'button' : undefined}
@@ -541,24 +600,19 @@ export default function App() {
           <div className="skill-meter mt-4">
             <span className="status-label">SKILLS_LOADED</span>
             <div className="bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" aria-label="System status">
-              <div className="bar-fill" style={{width: '100%'}}/>
+              <div className="bar-fill" style={{ width: '100%' }} />
             </div>
           </div>
-          <p className="status-tagline">ENGINEERING PRECISION<br/>MEETS CREATIVE SPEED</p>
+          <p className="status-tagline">ENGINEERING PRECISION<br />MEETS CREATIVE SPEED</p>
         </div>
       </aside>
 
       <nav className="bottom-bar" aria-label="Team navigation">
-        <div 
-          className="selector" 
-          ref={selectorRef}
-          role="tablist" 
-          aria-label="Select team to view different portfolio sections"
-        >
+        <div className="selector" ref={selectorRef} role="tablist" aria-label="Select team to view different portfolio sections">
           {Object.keys(DOSSIERS).map((t, index) => (
-            <button 
-              key={t} 
-              onClick={() => changeTeam(t)} 
+            <button
+              key={t}
+              onClick={() => changeTeam(t)}
               className={team === t ? 'active' : ''}
               type="button"
               role="tab"
@@ -585,7 +639,13 @@ export default function App() {
           >
             <Suspense fallback={null}>
               <SceneLighting teamColor={d.theme.main} transitionActive={transitioning} />
-              <F1Vehicle team={team} handData={handData} transitionActive={transitioning} />
+              <F1Vehicle
+                team={team}
+                handData={handData}
+                transitionActive={transitioning}
+                freeRoamRef={freeRoamRef}
+                onFreeRoamChange={handleFreeRoamChange}
+              />
               <GroundGlow teamColor={d.theme.main} transitionActive={transitioning} />
               <SpeedLines active={transitioning} color={d.theme.main} />
               <Stars
@@ -598,14 +658,7 @@ export default function App() {
                 speed={transitioning ? STAR_CONFIG.transition.speed : STAR_CONFIG.normal.speed}
               />
               <Environment preset="night" />
-              <ContactShadows
-                opacity={0.6}
-                scale={18}
-                blur={3}
-                far={1.5}
-                resolution={512}
-                color={d.theme.main}
-              />
+              <ContactShadows opacity={0.6} scale={18} blur={3} far={1.5} resolution={512} color={d.theme.main} />
               <gridHelper args={[80, 40, d.theme.main, "#111"]} position={[0, -0.49, 0]} />
             </Suspense>
           </Canvas>

@@ -1812,3 +1812,157 @@ a:hover {
     top: calc(100% + 10px);
   }
 }
+
+/* ========================================
+   HAND TRACKING INFO BOX
+   ======================================== */
+.hand-tracking-box {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 0.6rem 0.9rem;
+  min-width: 170px;
+  max-width: 200px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.06em;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  backdrop-filter: blur(8px);
+}
+
+.hand-tracking-box.hand-active {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.06);
+}
+
+.hand-tracking-box.drive-mode {
+  border-color: var(--team-color);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.08);
+}
+
+.ht-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+}
+
+.ht-header.drive {
+  color: var(--team-color);
+}
+
+.ht-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.ht-dot.live {
+  background: #00ff88;
+  box-shadow: 0 0 6px #00ff88;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.ht-status {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 0.35rem;
+}
+
+.ht-bar-wrap {
+  margin-bottom: 0.35rem;
+}
+
+.ht-bar-label {
+  display: block;
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 0.2rem;
+  letter-spacing: 0.06em;
+}
+
+.ht-bar {
+  position: relative;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: visible;
+}
+
+.ht-bar-fill {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--team-color);
+  box-shadow: 0 0 6px var(--team-color);
+  transition: left 0.05s linear;
+}
+
+.ht-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0.4rem 0;
+}
+
+.ht-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.58rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.ht-keys span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.ht-keys kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.05rem 0.3rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.04em;
+  min-width: 18px;
+}
+
+/* ========================================
+   F1 QUOTE BLOCK
+   ======================================== */
+.f1-quote {
+  font-size: 0.7rem;
+  font-style: italic;
+  color: var(--team-color);
+  border-left: 2px solid var(--team-color);
+  padding: 0.4rem 0.7rem;
+  margin: 0 0 0.9rem 0;
+  background: var(--team-bg);
+  border-radius: 0 3px 3px 0;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+  opacity: 0.92;
+}
