@@ -176,7 +176,7 @@ Improve accessibility and user experience.
 
 ---
 
-### [ ] Step: 3D Scene Visual Polish
+### [x] Step: 3D Scene Visual Polish
 <!-- chat-id: 38506857-5e4f-4b11-8592-ff010177fa4a -->
 
 Enhance the 3D scene with better lighting and effects.

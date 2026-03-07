@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useState, useEffect } from 'react';
+import React, { Suspense, useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Stars, useGLTF, Environment, ContactShadows, Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -89,43 +89,180 @@ const DOSSIERS = {
   }
 };
 
+function SceneLighting({ teamColor, transitionActive }) {
+  return (
+    <>
+      <ambientLight intensity={0.12} />
+      <directionalLight position={[-6, 10, -6]} intensity={0.45} color="#9ab8f0" />
+
+      <spotLight
+        position={[2, 12, 9]}
+        intensity={transitionActive ? 5 : 3}
+        color={teamColor}
+        angle={0.32}
+        penumbra={0.75}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-bias={-0.0005}
+      />
+
+      <spotLight
+        position={[-11, 6, -4]}
+        intensity={2.2}
+        color="#b8d4ff"
+        angle={0.4}
+        penumbra={1}
+      />
+
+      <spotLight
+        position={[11, 6, -4]}
+        intensity={1.8}
+        color={teamColor}
+        angle={0.4}
+        penumbra={1}
+      />
+
+      <pointLight
+        position={[0, -0.7, 0]}
+        intensity={transitionActive ? 4 : 1.5}
+        color={teamColor}
+        distance={7}
+        decay={2}
+      />
+
+      <pointLight
+        position={[0, 4, -9]}
+        intensity={1}
+        color={teamColor}
+        distance={18}
+        decay={2}
+      />
+    </>
+  );
+}
+
+function SpeedLines({ active, color }) {
+  const meshRef = useRef();
+
+  const positions = useMemo(() => {
+    const count = 160;
+    const arr = new Float32Array(count * 6);
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 5 + Math.random() * 22;
+      const x = Math.cos(angle) * radius;
+      const y = -4 + Math.random() * 10;
+      arr[i * 6]     = x;
+      arr[i * 6 + 1] = y;
+      arr[i * 6 + 2] = -55;
+      arr[i * 6 + 3] = x * 0.8;
+      arr[i * 6 + 4] = y;
+      arr[i * 6 + 5] = 8;
+    }
+    return arr;
+  }, []);
+
+  useFrame(() => {
+    if (!meshRef.current) return;
+    const target = active ? 0.45 : 0;
+    meshRef.current.material.opacity = THREE.MathUtils.lerp(
+      meshRef.current.material.opacity, target, 0.12
+    );
+  });
+
+  return (
+    <lineSegments ref={meshRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          array={positions}
+          count={positions.length / 3}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <lineBasicMaterial
+        color={color}
+        transparent
+        opacity={0}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </lineSegments>
+  );
+}
+
+function GroundGlow({ teamColor, transitionActive }) {
+  const meshRef = useRef();
+
+  useFrame(() => {
+    if (!meshRef.current) return;
+    const target = transitionActive ? 0.7 : 0.35;
+    meshRef.current.material.opacity = THREE.MathUtils.lerp(
+      meshRef.current.material.opacity, target, 0.06
+    );
+  });
+
+  return (
+    <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.47, 0]}>
+      <circleGeometry args={[5, 64]} />
+      <meshBasicMaterial
+        color={teamColor}
+        transparent
+        opacity={0.35}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </mesh>
+  );
+}
+
 function F1Vehicle({ team, handData, transitionActive }) {
   const group = useRef();
   const { scene } = useGLTF(`/models/${team}.glb`);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!group.current) return;
+
     if (handData?.x && !transitionActive) {
       const targetRot = (handData.x - 0.5) * -3;
       group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetRot + Math.PI, 0.1);
+    } else {
+      group.current.rotation.y += delta * 0.18;
     }
-    
+
     const isMobile = window.innerWidth <= 767;
     const isTablet = window.innerWidth > 767 && window.innerWidth <= 1023;
-    
-    let targetCamZ, targetCamY;
+
+    let targetCamZ, targetCamY, targetCamX;
     if (transitionActive) {
       targetCamZ = isMobile ? 18 : 22;
       targetCamY = 3;
+      targetCamX = 0;
     } else {
       if (isMobile) {
         targetCamZ = 14;
         targetCamY = 2;
+        targetCamX = 0;
       } else if (isTablet) {
         targetCamZ = 12;
         targetCamY = 2.5;
+        targetCamX = 0;
       } else {
-        targetCamZ = 11;
-        targetCamY = 3;
+        targetCamZ = 10;
+        targetCamY = 2.2;
+        targetCamX = 0;
       }
     }
-    
+
     state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, targetCamZ, 0.05);
     state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, targetCamY, 0.05);
+    state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, targetCamX, 0.05);
+    state.camera.lookAt(0, 0.5, 0);
   });
 
   return (
-    <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
+    <Float speed={1.2} rotationIntensity={0.1} floatIntensity={0.35}>
       <primitive ref={group} object={scene} scale={2.8} />
     </Float>
   );
@@ -426,22 +563,39 @@ export default function App() {
 
       <div className="canvas-container">
         <ErrorBoundary>
-          <Canvas 
-            shadows 
-            camera={{ 
-              position: [0, isMobile ? 2 : 3, isMobile ? 14 : 11], 
-              fov: isMobile ? 50 : 45 
+          <Canvas
+            shadows
+            gl={{ antialias: true, powerPreference: 'high-performance' }}
+            camera={{
+              position: [0, isMobile ? 2 : 2.2, isMobile ? 14 : 10],
+              fov: isMobile ? 50 : 42
             }}
           >
             <Suspense fallback={null}>
+              <SceneLighting teamColor={d.theme.main} transitionActive={transitioning} />
               <F1Vehicle team={team} handData={handData} transitionActive={transitioning} />
-              <Stars radius={100} depth={transitioning ? 200 : 50} count={transitioning ? 15000 : 5000} factor={transitioning ? 25 : 4} fade />
+              <GroundGlow teamColor={d.theme.main} transitionActive={transitioning} />
+              <SpeedLines active={transitioning} color={d.theme.main} />
+              <Stars
+                radius={120}
+                depth={transitioning ? 120 : 50}
+                count={transitioning ? 8000 : 4000}
+                factor={transitioning ? 18 : 4}
+                saturation={0.5}
+                fade
+                speed={transitioning ? 3 : 1}
+              />
               <Environment preset="night" />
-              <ContactShadows opacity={0.4} scale={20} blur={2.4} />
-              <gridHelper args={[100, 50, "#333", "#0a0a0a"]} position={[0, -0.5, 0]} />
+              <ContactShadows
+                opacity={0.6}
+                scale={18}
+                blur={3}
+                far={1.5}
+                resolution={512}
+                color={d.theme.main}
+              />
+              <gridHelper args={[80, 40, d.theme.main, "#111"]} position={[0, -0.49, 0]} />
             </Suspense>
-            <ambientLight intensity={0.4} />
-            <pointLight position={[5, 5, 5]} intensity={1.5} color={d.theme.main} />
           </Canvas>
         </ErrorBoundary>
       </div>
