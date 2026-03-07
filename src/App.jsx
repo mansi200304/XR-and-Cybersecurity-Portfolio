@@ -6,6 +6,28 @@ import { HandTracker } from './HandTracker';
 import ErrorBoundary from './components/ErrorBoundary';
 import RaceEngine from './components/Game/RaceEngine';
 
+const BREAKPOINT_MOBILE = 767;
+const BREAKPOINT_TABLET = 1023;
+const TEAM_TRANSITION_MS = 700;
+const HAND_TIP_INDEX = 8;
+const MODEL_SCALE = 2.8;
+const AUTO_ROTATION_SPEED = 0.18;
+const CAMERA_LERP = 0.05;
+const HAND_ROT_LERP = 0.1;
+
+const CAMERA_POSITIONS = {
+  mobile:     { z: 14, y: 2,   x: 0, fov: 50 },
+  tablet:     { z: 12, y: 2.5, x: 0 },
+  desktop:    { z: 10, y: 2.2, x: 0, fov: 42 },
+  transition: { z: 22, y: 3,   x: 0 },
+  transitionMobile: { z: 18 },
+};
+
+const STAR_CONFIG = {
+  normal:     { depth: 50,  count: 4000, factor: 4,  speed: 1 },
+  transition: { depth: 120, count: 8000, factor: 18, speed: 3 },
+};
+
 const DOSSIERS = {
   ferrari: {
     id: "02",
@@ -226,44 +248,34 @@ function F1Vehicle({ team, handData, transitionActive }) {
 
     if (handData?.x && !transitionActive) {
       const targetRot = (handData.x - 0.5) * -3;
-      group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetRot + Math.PI, 0.1);
+      group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetRot + Math.PI, HAND_ROT_LERP);
     } else {
-      group.current.rotation.y += delta * 0.18;
+      group.current.rotation.y += delta * AUTO_ROTATION_SPEED;
     }
 
-    const isMobile = window.innerWidth <= 767;
-    const isTablet = window.innerWidth > 767 && window.innerWidth <= 1023;
+    const isMobile = window.innerWidth <= BREAKPOINT_MOBILE;
+    const isTablet = window.innerWidth > BREAKPOINT_MOBILE && window.innerWidth <= BREAKPOINT_TABLET;
 
-    let targetCamZ, targetCamY, targetCamX;
+    let cam;
     if (transitionActive) {
-      targetCamZ = isMobile ? 18 : 22;
-      targetCamY = 3;
-      targetCamX = 0;
+      cam = isMobile ? { z: CAMERA_POSITIONS.transitionMobile.z, y: CAMERA_POSITIONS.transition.y, x: CAMERA_POSITIONS.transition.x } : CAMERA_POSITIONS.transition;
+    } else if (isMobile) {
+      cam = CAMERA_POSITIONS.mobile;
+    } else if (isTablet) {
+      cam = CAMERA_POSITIONS.tablet;
     } else {
-      if (isMobile) {
-        targetCamZ = 14;
-        targetCamY = 2;
-        targetCamX = 0;
-      } else if (isTablet) {
-        targetCamZ = 12;
-        targetCamY = 2.5;
-        targetCamX = 0;
-      } else {
-        targetCamZ = 10;
-        targetCamY = 2.2;
-        targetCamX = 0;
-      }
+      cam = CAMERA_POSITIONS.desktop;
     }
 
-    state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, targetCamZ, 0.05);
-    state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, targetCamY, 0.05);
-    state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, targetCamX, 0.05);
+    state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, cam.z, CAMERA_LERP);
+    state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, cam.y, CAMERA_LERP);
+    state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, cam.x, CAMERA_LERP);
     state.camera.lookAt(0, 0.5, 0);
   });
 
   return (
     <Float speed={1.2} rotationIntensity={0.1} floatIntensity={0.35}>
-      <primitive ref={group} object={scene} scale={2.8} />
+      <primitive ref={group} object={scene} scale={MODEL_SCALE} />
     </Float>
   );
 }
@@ -285,7 +297,7 @@ export default function App() {
   const changeTeam = (newTeam) => {
     if (newTeam === team) return;
     setTransitioning(true);
-    setTimeout(() => { setTeam(newTeam); setTransitioning(false); }, 700);
+    setTimeout(() => { setTeam(newTeam); setTransitioning(false); }, TEAM_TRANSITION_MS);
   };
 
   const toggleRaceMode = () => {
@@ -310,7 +322,7 @@ export default function App() {
 
   useEffect(() => {
     const tracker = new HandTracker((res) => {
-      if (res.multiHandLandmarks?.[0]) setHandData(res.multiHandLandmarks[0][8]);
+      if (res.multiHandLandmarks?.[0]) setHandData(res.multiHandLandmarks[0][HAND_TIP_INDEX]);
     });
     if (videoRef.current) tracker.start(videoRef.current);
   }, []);
@@ -333,7 +345,7 @@ export default function App() {
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 767);
+      setIsMobile(window.innerWidth <= BREAKPOINT_MOBILE);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -567,8 +579,8 @@ export default function App() {
             shadows
             gl={{ antialias: true, powerPreference: 'high-performance' }}
             camera={{
-              position: [0, isMobile ? 2 : 2.2, isMobile ? 14 : 10],
-              fov: isMobile ? 50 : 42
+              position: [0, isMobile ? CAMERA_POSITIONS.mobile.y : CAMERA_POSITIONS.desktop.y, isMobile ? CAMERA_POSITIONS.mobile.z : CAMERA_POSITIONS.desktop.z],
+              fov: isMobile ? CAMERA_POSITIONS.mobile.fov : CAMERA_POSITIONS.desktop.fov
             }}
           >
             <Suspense fallback={null}>
@@ -578,12 +590,12 @@ export default function App() {
               <SpeedLines active={transitioning} color={d.theme.main} />
               <Stars
                 radius={120}
-                depth={transitioning ? 120 : 50}
-                count={transitioning ? 8000 : 4000}
-                factor={transitioning ? 18 : 4}
+                depth={transitioning ? STAR_CONFIG.transition.depth : STAR_CONFIG.normal.depth}
+                count={transitioning ? STAR_CONFIG.transition.count : STAR_CONFIG.normal.count}
+                factor={transitioning ? STAR_CONFIG.transition.factor : STAR_CONFIG.normal.factor}
                 saturation={0.5}
                 fade
-                speed={transitioning ? 3 : 1}
+                speed={transitioning ? STAR_CONFIG.transition.speed : STAR_CONFIG.normal.speed}
               />
               <Environment preset="night" />
               <ContactShadows
