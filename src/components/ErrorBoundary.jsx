@@ -14,6 +14,12 @@ class ErrorBoundary extends React.Component {
     console.error('3D Scene Error:', error, errorInfo);
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+
   render() {
     if (this.state.hasError) {
       return (
@@ -23,30 +29,33 @@ class ErrorBoundary extends React.Component {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'rgba(0, 0, 0, 0.8)',
+          background: 'rgba(0, 0, 0, 0.85)',
           color: '#fff',
           padding: '20px',
           textAlign: 'center',
           zIndex: 10
         }}>
           <div>
-            <h2 style={{ marginBottom: '10px', color: 'var(--team-color, #E8002D)' }}>
-              3D Scene Error
+            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
+            <h2 style={{ marginBottom: '8px', color: 'var(--team-color, #E8002D)', fontSize: '0.9rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              3D Model Unavailable
             </h2>
-            <p style={{ marginBottom: '20px', opacity: 0.8 }}>
-              Unable to load the 3D model. Please try selecting a different team.
+            <p style={{ marginBottom: '20px', opacity: 0.7, fontSize: '0.75rem', maxWidth: '260px' }}>
+              The model file could not be loaded. Make sure all <code>.glb</code> files are present in <code>/public/models/</code>.
             </p>
-            <button 
+            <button
               onClick={() => this.setState({ hasError: false, error: null })}
               style={{
-                padding: '10px 20px',
+                padding: '10px 24px',
                 background: 'var(--team-color, #E8002D)',
                 color: '#fff',
-                border: 'none',
+                border: '2px solid var(--team-color, #E8002D)',
+                borderRadius: '4px',
                 cursor: 'pointer',
                 textTransform: 'uppercase',
                 fontWeight: 'bold',
-                letterSpacing: '1px'
+                letterSpacing: '2px',
+                fontSize: '0.625rem'
               }}
             >
               Retry

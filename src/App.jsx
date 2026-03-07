@@ -562,7 +562,7 @@ export default function App() {
       </nav>
 
       <div className="canvas-container">
-        <ErrorBoundary>
+        <ErrorBoundary key={team}>
           <Canvas
             shadows
             gl={{ antialias: true, powerPreference: 'high-performance' }}
