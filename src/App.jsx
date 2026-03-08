@@ -14,7 +14,7 @@ const MODEL_SCALE = 2.8;
 const AUTO_ROTATION_SPEED = 0.18;
 const CAMERA_LERP = 0.05;
 const HAND_ROT_LERP = 0.1;
-const PROCEDURAL_TEAMS = ['mclaren', 'alpine'];
+const PROCEDURAL_TEAMS = [];
 
 const CAMERA_POSITIONS = {
   mobile:           { z: 14, y: 2,   x: 0, fov: 50 },
