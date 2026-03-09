@@ -8,7 +8,9 @@ import ProceduralF1Car from './components/Game/ProceduralF1Car';
 
 function detectGesture(lm) {
   if (!lm || lm.length < 21) return { gesture: 'none', pinchDist: 0.1 };
-  const ext = (tip, pip) => lm[tip].y < lm[pip].y;
+  const wrist = lm[0];
+  const d3 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0));
+  const ext = (tip, pip) => d3(lm[tip], wrist) > d3(lm[pip], wrist) * 1.1;
   const iUp = ext(8, 6);
   const mUp = ext(12, 10);
   const rUp = ext(16, 14);
@@ -32,122 +34,119 @@ const GESTURE_LABELS = {
 };
 
 function ExhaustSmoke({ active }) {
-  const COUNT = 100;
-  const pointsRef = useRef();
-  const posData = useRef(new Float32Array(COUNT * 3));
-  const particles = useRef(
-    Array.from({ length: COUNT }, () => ({ x: 0, y: -100, z: 0, vx: 0, vy: 0, vz: 0, life: 0 }))
+  const COUNT = 150;
+  const geomRef = useRef();
+  const matRef = useRef();
+  const posArr = useMemo(() => {
+    const a = new Float32Array(COUNT * 3);
+    for (let i = 0; i < COUNT; i++) a[i * 3 + 1] = -500;
+    return a;
+  }, []);
+  const pts = useRef(
+    Array.from({ length: COUNT }, () => ({ x: 0, y: -500, z: 0, vx: 0, vy: 0, vz: 0, life: 0 }))
   );
 
   useFrame((_, delta) => {
-    if (!pointsRef.current) return;
-    const p = particles.current;
-    const pos = posData.current;
-
+    if (!geomRef.current || !matRef.current) return;
+    const p = pts.current;
     if (active) {
       for (let i = 0; i < COUNT; i++) {
-        if (p[i].life <= 0 && Math.random() < 0.5) {
-          const side = Math.random() > 0.5 ? 0.28 : -0.28;
+        if (p[i].life <= 0 && Math.random() < 0.45) {
+          const side = Math.random() > 0.5 ? 0.3 : -0.3;
           p[i] = {
-            x: side + (Math.random() - 0.5) * 0.08,
-            y: 0.32, z: -2.12,
-            vx: (Math.random() - 0.5) * 0.012,
-            vy: 0.018 + Math.random() * 0.022,
-            vz: -(Math.random() * 0.008),
+            x: side + (Math.random() - 0.5) * 0.15, y: 0.35, z: -1.6,
+            vx: (Math.random() - 0.5) * 0.016,
+            vy: 0.028 + Math.random() * 0.032,
+            vz: -(Math.random() * 0.01),
             life: 1.0,
           };
         }
       }
     }
-
     for (let i = 0; i < COUNT; i++) {
       if (p[i].life > 0) {
-        p[i].life -= delta * 0.55;
+        p[i].life -= delta * 0.5;
         p[i].x += p[i].vx;
         p[i].y += p[i].vy;
         p[i].z += p[i].vz;
-        p[i].vx += (Math.random() - 0.5) * 0.0015;
-        pos[i * 3] = p[i].x;
-        pos[i * 3 + 1] = p[i].y;
-        pos[i * 3 + 2] = p[i].z;
+        p[i].vx += (Math.random() - 0.5) * 0.002;
+        posArr[i * 3] = p[i].x;
+        posArr[i * 3 + 1] = p[i].y;
+        posArr[i * 3 + 2] = p[i].z;
       } else {
-        pos[i * 3 + 1] = -100;
+        posArr[i * 3 + 1] = -500;
       }
     }
-    pointsRef.current.geometry.attributes.position.needsUpdate = true;
-    pointsRef.current.material.opacity = THREE.MathUtils.lerp(
-      pointsRef.current.material.opacity, active ? 0.65 : 0, 0.08
-    );
+    geomRef.current.attributes.position.needsUpdate = true;
+    matRef.current.opacity = THREE.MathUtils.lerp(matRef.current.opacity, active ? 0.75 : 0, 0.1);
   });
 
   return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" array={posData.current} count={COUNT} itemSize={3} />
+    <points>
+      <bufferGeometry ref={geomRef}>
+        <bufferAttribute attach="attributes-position" args={[posArr, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.4} color="#dddddd" transparent opacity={0} depthWrite={false} sizeAttenuation />
+      <pointsMaterial ref={matRef} size={0.65} color="#e8e8e8" transparent opacity={0} depthWrite={false} sizeAttenuation />
     </points>
   );
 }
 
 function SparkBurst({ active, color }) {
-  const COUNT = 80;
-  const pointsRef = useRef();
-  const posData = useRef(new Float32Array(COUNT * 3));
+  const COUNT = 120;
+  const geomRef = useRef();
+  const matRef = useRef();
+  const posArr = useMemo(() => {
+    const a = new Float32Array(COUNT * 3);
+    for (let i = 0; i < COUNT; i++) a[i * 3 + 1] = -500;
+    return a;
+  }, []);
   const vels = useRef(
-    Array.from({ length: COUNT }, () => ({ x: 0, y: -100, z: 0, vx: 0, vy: 0, vz: 0, life: 0 }))
+    Array.from({ length: COUNT }, () => ({ x: 0, y: -500, z: 0, vx: 0, vy: 0, vz: 0, life: 0 }))
   );
   const wasActive = useRef(false);
 
   useFrame((_, delta) => {
-    if (!pointsRef.current) return;
-
+    if (!geomRef.current || !matRef.current) return;
     if (active && !wasActive.current) {
       for (let i = 0; i < COUNT; i++) {
         const angle = (i / COUNT) * Math.PI * 2 + Math.random() * 0.5;
-        const pitch = (Math.random() - 0.3) * Math.PI;
-        const speed = 0.04 + Math.random() * 0.07;
+        const pitch = (Math.random() - 0.2) * Math.PI;
+        const speed = 0.06 + Math.random() * 0.1;
         vels.current[i] = {
-          x: 0, y: 0.6 + Math.random() * 0.4, z: 0,
+          x: 0, y: 0.7 + Math.random() * 0.5, z: 0,
           vx: Math.cos(angle) * Math.cos(pitch) * speed,
-          vy: Math.abs(Math.sin(pitch)) * speed * 2.5,
+          vy: Math.abs(Math.sin(pitch)) * speed * 2.8,
           vz: Math.sin(angle) * Math.cos(pitch) * speed,
-          life: 0.8 + Math.random() * 0.4,
+          life: 1.0 + Math.random() * 0.5,
         };
       }
     }
     wasActive.current = active;
-
-    const v = vels.current;
-    const pos = posData.current;
     let anyAlive = false;
     for (let i = 0; i < COUNT; i++) {
-      if (v[i].life > 0) {
-        v[i].life -= delta * 1.0;
-        v[i].x += v[i].vx;
-        v[i].y += v[i].vy;
-        v[i].z += v[i].vz;
-        v[i].vy -= 0.0025;
-        pos[i * 3] = v[i].x;
-        pos[i * 3 + 1] = v[i].y;
-        pos[i * 3 + 2] = v[i].z;
+      const v = vels.current[i];
+      if (v.life > 0) {
+        v.life -= delta * 0.9;
+        v.x += v.vx; v.y += v.vy; v.z += v.vz;
+        v.vy -= 0.003;
+        posArr[i * 3] = v.x;
+        posArr[i * 3 + 1] = v.y;
+        posArr[i * 3 + 2] = v.z;
         anyAlive = true;
       } else {
-        pos[i * 3 + 1] = -100;
+        posArr[i * 3 + 1] = -500;
       }
     }
-    pointsRef.current.geometry.attributes.position.needsUpdate = true;
-    pointsRef.current.material.opacity = THREE.MathUtils.lerp(
-      pointsRef.current.material.opacity, anyAlive ? 0.95 : 0, 0.15
-    );
+    geomRef.current.attributes.position.needsUpdate = true;
+    matRef.current.opacity = THREE.MathUtils.lerp(matRef.current.opacity, anyAlive ? 1.0 : 0, 0.18);
   });
 
   return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" array={posData.current} count={COUNT} itemSize={3} />
+    <points>
+      <bufferGeometry ref={geomRef}>
+        <bufferAttribute attach="attributes-position" args={[posArr, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.12} color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
+      <pointsMaterial ref={matRef} size={0.2} color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
     </points>
   );
 }
@@ -155,22 +154,34 @@ function SparkBurst({ active, color }) {
 function BeamLight({ active, color }) {
   const coneRef = useRef();
   const glowRef = useRef();
+  const pulseRef = useRef();
 
-  useFrame((_, delta) => {
-    if (!coneRef.current || !glowRef.current) return;
-    coneRef.current.material.opacity = THREE.MathUtils.lerp(coneRef.current.material.opacity, active ? 0.3 : 0, 0.1);
-    glowRef.current.material.opacity = THREE.MathUtils.lerp(glowRef.current.material.opacity, active ? 0.7 : 0, 0.1);
-    if (active) coneRef.current.rotation.y += delta * 0.5;
+  useFrame((state, delta) => {
+    if (!coneRef.current) return;
+    const t = active ? 0.4 : 0;
+    coneRef.current.material.opacity = THREE.MathUtils.lerp(coneRef.current.material.opacity, t, 0.12);
+    if (glowRef.current) {
+      glowRef.current.material.opacity = THREE.MathUtils.lerp(glowRef.current.material.opacity, active ? 0.8 : 0, 0.12);
+    }
+    if (pulseRef.current) {
+      const pulse = active ? 0.3 + Math.sin(state.clock.elapsedTime * 4) * 0.15 : 0;
+      pulseRef.current.material.opacity = THREE.MathUtils.lerp(pulseRef.current.material.opacity, pulse, 0.15);
+    }
+    if (active) coneRef.current.rotation.y += delta * 0.6;
   });
 
   return (
-    <group position={[0, 0.5, 0]}>
-      <mesh ref={coneRef} position={[0, 6, 0]} rotation={[Math.PI, 0, 0]}>
-        <coneGeometry args={[2.5, 14, 32, 1, true]} />
+    <group>
+      <mesh ref={coneRef} position={[0, 7, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[3, 16, 32, 1, true]} />
         <meshBasicMaterial color={color} transparent opacity={0} side={THREE.BackSide} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
-      <mesh ref={glowRef} position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[1.5, 32]} />
+      <mesh ref={glowRef} position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[2.2, 48]} />
+        <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh ref={pulseRef} position={[0, 0.15, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[2.2, 3.5, 48]} />
         <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
       </mesh>
     </group>
@@ -180,25 +191,31 @@ function BeamLight({ active, color }) {
 function EnergyRing({ active, color }) {
   const ring1Ref = useRef();
   const ring2Ref = useRef();
+  const ring3Ref = useRef();
 
   useFrame((_, delta) => {
-    if (!ring1Ref.current || !ring2Ref.current) return;
+    if (!ring1Ref.current) return;
     ring1Ref.current.rotation.x += delta * 2.5;
     ring1Ref.current.rotation.z += delta * 1.8;
-    ring2Ref.current.rotation.y += delta * 3;
-    ring2Ref.current.rotation.z += delta * 2;
-    ring1Ref.current.material.opacity = THREE.MathUtils.lerp(ring1Ref.current.material.opacity, active ? 0.7 : 0, 0.1);
-    ring2Ref.current.material.opacity = THREE.MathUtils.lerp(ring2Ref.current.material.opacity, active ? 0.45 : 0, 0.1);
+    if (ring2Ref.current) { ring2Ref.current.rotation.y += delta * 3.2; ring2Ref.current.rotation.z += delta * 2.1; }
+    if (ring3Ref.current) { ring3Ref.current.rotation.x += delta * 1.5; ring3Ref.current.rotation.y += delta * 2.8; }
+    ring1Ref.current.material.opacity = THREE.MathUtils.lerp(ring1Ref.current.material.opacity, active ? 0.85 : 0, 0.12);
+    if (ring2Ref.current) ring2Ref.current.material.opacity = THREE.MathUtils.lerp(ring2Ref.current.material.opacity, active ? 0.6 : 0, 0.12);
+    if (ring3Ref.current) ring3Ref.current.material.opacity = THREE.MathUtils.lerp(ring3Ref.current.material.opacity, active ? 0.4 : 0, 0.12);
   });
 
   return (
     <group position={[0, 0.8, 0]}>
       <mesh ref={ring1Ref}>
-        <torusGeometry args={[2.8, 0.06, 8, 80]} />
+        <torusGeometry args={[3.0, 0.08, 8, 80]} />
         <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
       <mesh ref={ring2Ref}>
-        <torusGeometry args={[2.2, 0.04, 8, 80]} />
+        <torusGeometry args={[2.3, 0.05, 8, 80]} />
+        <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <mesh ref={ring3Ref}>
+        <torusGeometry args={[1.6, 0.04, 8, 64]} />
         <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
     </group>
@@ -399,7 +416,7 @@ function VehicleContent({ team }) {
   return <VehicleGLB team={team} />;
 }
 
-function F1Vehicle({ team, handData, transitionActive, freeRoamRef, onFreeRoamChange, zoomRef }) {
+function F1Vehicle({ team, teamColor, handData, transitionActive, freeRoamRef, onFreeRoamChange, zoomRef }) {
   const outerRef = useRef();
   const wasdKeys = useRef({});
   const carSpeed = useRef(0);
@@ -505,6 +522,13 @@ function F1Vehicle({ team, handData, transitionActive, freeRoamRef, onFreeRoamCh
   return (
     <group ref={outerRef}>
       <VehicleContent team={team} />
+      {!freeRoamRef.current && (
+        <>
+          <ExhaustSmoke active={handData.detected && handData.gesture === 'fist'} />
+          <SparkBurst active={handData.detected && handData.gesture === 'peace'} color={teamColor} />
+          <EnergyRing active={handData.detected && handData.gesture === 'rock'} color={teamColor} />
+        </>
+      )}
     </group>
   );
 }
@@ -526,6 +550,7 @@ export default function App() {
   const freeRoamRef = useRef(false);
   const handTimeoutRef = useRef(null);
   const zoomRef = useRef(1.0);
+  const gestureBufferRef = useRef({ gesture: 'none', count: 0 });
 
   const handleFreeRoamChange = useCallback((val) => {
     freeRoamRef.current = val;
@@ -560,11 +585,20 @@ export default function App() {
         const lm = res.multiHandLandmarks[0];
         const tip = lm[HAND_TIP_INDEX];
         const { gesture, pinchDist } = detectGesture(lm);
+        const buf = gestureBufferRef.current;
+        if (gesture === buf.gesture) {
+          buf.count = Math.min(buf.count + 1, 10);
+        } else {
+          buf.gesture = gesture;
+          buf.count = 1;
+        }
+        const stableGesture = buf.count >= 3 ? buf.gesture : 'none';
         clearTimeout(handTimeoutRef.current);
         handTimeoutRef.current = setTimeout(() => {
+          gestureBufferRef.current = { gesture: 'none', count: 0 };
           setHandData(prev => ({ ...prev, detected: false, gesture: 'none' }));
-        }, 600);
-        setHandData({ detected: true, x: tip.x, y: tip.y, gesture, pinchDist, landmarks: lm });
+        }, 800);
+        setHandData({ detected: true, x: tip.x, y: tip.y, gesture: stableGesture, pinchDist, landmarks: lm });
       }
     });
     if (videoRef.current) tracker.start(videoRef.current);
@@ -867,20 +901,14 @@ export default function App() {
               <SceneLighting teamColor={d.theme.main} transitionActive={transitioning} />
               <F1Vehicle
                 team={team}
+                teamColor={d.theme.main}
                 handData={handData}
                 transitionActive={transitioning}
                 freeRoamRef={freeRoamRef}
                 onFreeRoamChange={handleFreeRoamChange}
                 zoomRef={zoomRef}
               />
-              {!freeRoaming && (
-                <>
-                  <ExhaustSmoke active={handData.detected && handData.gesture === 'fist'} />
-                  <SparkBurst active={handData.detected && handData.gesture === 'peace'} color={d.theme.main} />
-                  <BeamLight active={handData.detected && handData.gesture === 'point'} color={d.theme.main} />
-                  <EnergyRing active={handData.detected && handData.gesture === 'rock'} color={d.theme.main} />
-                </>
-              )}
+              <BeamLight active={!freeRoaming && handData.detected && handData.gesture === 'point'} color={d.theme.main} />
               <GroundGlow teamColor={d.theme.main} transitionActive={transitioning} />
               <SpeedLines active={transitioning} color={d.theme.main} />
               <Stars
