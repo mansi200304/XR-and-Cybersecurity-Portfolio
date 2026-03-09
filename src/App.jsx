@@ -8,13 +8,12 @@ import ProceduralF1Car from './components/Game/ProceduralF1Car';
 
 function detectGesture(lm) {
   if (!lm || lm.length < 21) return { gesture: 'none', pinchDist: 0.1 };
-  const wrist = lm[0];
-  const d3 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0));
-  const ext = (tip, pip) => d3(lm[tip], wrist) > d3(lm[pip], wrist) * 1.1;
-  const iUp = ext(8, 6);
-  const mUp = ext(12, 10);
-  const rUp = ext(16, 14);
-  const pUp = ext(20, 18);
+  // y: 0=top 1=bottom in image coords. Finger extended = tip higher (lower y) than MCP base knuckle
+  const ext = (tip, mcp) => lm[tip].y < lm[mcp].y;
+  const iUp = ext(8, 5);   // index
+  const mUp = ext(12, 9);  // middle
+  const rUp = ext(16, 13); // ring
+  const pUp = ext(20, 17); // pinky
   const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
   if (!iUp && !mUp && !rUp && !pUp) return { gesture: 'fist', pinchDist };
   if (iUp && mUp && rUp && pUp)    return { gesture: 'open', pinchDist };
@@ -33,92 +32,63 @@ const GESTURE_LABELS = {
   none:  '',
 };
 
+function makeParticleSystem(count, color, size, additive) {
+  const arr = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) arr[i * 3 + 1] = -500;
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  const mat = new THREE.PointsMaterial({
+    size, color, transparent: true, opacity: 0, depthWrite: false, sizeAttenuation: true,
+    blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+  });
+  return new THREE.Points(geom, mat);
+}
+
 function ExhaustSmoke({ active }) {
   const COUNT = 150;
-  const geomRef = useRef();
-  const matRef = useRef();
-  const posArr = useMemo(() => {
-    const a = new Float32Array(COUNT * 3);
-    for (let i = 0; i < COUNT; i++) a[i * 3 + 1] = -500;
-    return a;
-  }, []);
-  const pts = useRef(
-    Array.from({ length: COUNT }, () => ({ x: 0, y: -500, z: 0, vx: 0, vy: 0, vz: 0, life: 0 }))
-  );
+  const obj = useMemo(() => makeParticleSystem(COUNT, '#e8e8e8', 0.65, false), []);
+  const pts = useRef(Array.from({ length: COUNT }, () => ({ x: 0, y: -500, z: 0, vx: 0, vy: 0, vz: 0, life: 0 })));
+  useEffect(() => () => { obj.geometry.dispose(); obj.material.dispose(); }, [obj]);
 
   useFrame((_, delta) => {
-    if (!geomRef.current || !matRef.current) return;
+    const arr = obj.geometry.attributes.position.array;
     const p = pts.current;
     if (active) {
       for (let i = 0; i < COUNT; i++) {
         if (p[i].life <= 0 && Math.random() < 0.45) {
           const side = Math.random() > 0.5 ? 0.3 : -0.3;
-          p[i] = {
-            x: side + (Math.random() - 0.5) * 0.15, y: 0.35, z: -1.6,
-            vx: (Math.random() - 0.5) * 0.016,
-            vy: 0.028 + Math.random() * 0.032,
-            vz: -(Math.random() * 0.01),
-            life: 1.0,
-          };
+          p[i] = { x: side + (Math.random()-0.5)*0.15, y: 0.35, z: -1.6, vx: (Math.random()-0.5)*0.016, vy: 0.028+Math.random()*0.032, vz: -Math.random()*0.01, life: 1.0 };
         }
       }
     }
     for (let i = 0; i < COUNT; i++) {
       if (p[i].life > 0) {
-        p[i].life -= delta * 0.5;
-        p[i].x += p[i].vx;
-        p[i].y += p[i].vy;
-        p[i].z += p[i].vz;
-        p[i].vx += (Math.random() - 0.5) * 0.002;
-        posArr[i * 3] = p[i].x;
-        posArr[i * 3 + 1] = p[i].y;
-        posArr[i * 3 + 2] = p[i].z;
-      } else {
-        posArr[i * 3 + 1] = -500;
-      }
+        p[i].life -= delta * 0.5; p[i].x += p[i].vx; p[i].y += p[i].vy; p[i].z += p[i].vz;
+        p[i].vx += (Math.random()-0.5)*0.002;
+        arr[i*3]=p[i].x; arr[i*3+1]=p[i].y; arr[i*3+2]=p[i].z;
+      } else { arr[i*3+1]=-500; }
     }
-    geomRef.current.attributes.position.needsUpdate = true;
-    matRef.current.opacity = THREE.MathUtils.lerp(matRef.current.opacity, active ? 0.75 : 0, 0.1);
+    obj.geometry.attributes.position.needsUpdate = true;
+    obj.material.opacity = THREE.MathUtils.lerp(obj.material.opacity, active ? 0.75 : 0, 0.1);
   });
-
-  return (
-    <points>
-      <bufferGeometry ref={geomRef}>
-        <bufferAttribute attach="attributes-position" args={[posArr, 3]} />
-      </bufferGeometry>
-      <pointsMaterial ref={matRef} size={0.65} color="#e8e8e8" transparent opacity={0} depthWrite={false} sizeAttenuation />
-    </points>
-  );
+  return <primitive object={obj} />;
 }
 
 function SparkBurst({ active, color }) {
   const COUNT = 120;
-  const geomRef = useRef();
-  const matRef = useRef();
-  const posArr = useMemo(() => {
-    const a = new Float32Array(COUNT * 3);
-    for (let i = 0; i < COUNT; i++) a[i * 3 + 1] = -500;
-    return a;
-  }, []);
-  const vels = useRef(
-    Array.from({ length: COUNT }, () => ({ x: 0, y: -500, z: 0, vx: 0, vy: 0, vz: 0, life: 0 }))
-  );
+  const obj = useMemo(() => makeParticleSystem(COUNT, color, 0.22, true), [color]);
+  const vels = useRef(Array.from({ length: COUNT }, () => ({ x: 0, y: -500, z: 0, vx: 0, vy: 0, vz: 0, life: 0 })));
   const wasActive = useRef(false);
+  useEffect(() => () => { obj.geometry.dispose(); obj.material.dispose(); }, [obj]);
 
   useFrame((_, delta) => {
-    if (!geomRef.current || !matRef.current) return;
+    const arr = obj.geometry.attributes.position.array;
     if (active && !wasActive.current) {
       for (let i = 0; i < COUNT; i++) {
-        const angle = (i / COUNT) * Math.PI * 2 + Math.random() * 0.5;
-        const pitch = (Math.random() - 0.2) * Math.PI;
-        const speed = 0.06 + Math.random() * 0.1;
-        vels.current[i] = {
-          x: 0, y: 0.7 + Math.random() * 0.5, z: 0,
-          vx: Math.cos(angle) * Math.cos(pitch) * speed,
-          vy: Math.abs(Math.sin(pitch)) * speed * 2.8,
-          vz: Math.sin(angle) * Math.cos(pitch) * speed,
-          life: 1.0 + Math.random() * 0.5,
-        };
+        const angle = (i/COUNT)*Math.PI*2 + Math.random()*0.5;
+        const pitch = (Math.random()-0.2)*Math.PI;
+        const speed = 0.06 + Math.random()*0.1;
+        vels.current[i] = { x: 0, y: 0.7+Math.random()*0.5, z: 0, vx: Math.cos(angle)*Math.cos(pitch)*speed, vy: Math.abs(Math.sin(pitch))*speed*2.8, vz: Math.sin(angle)*Math.cos(pitch)*speed, life: 1.0+Math.random()*0.5 };
       }
     }
     wasActive.current = active;
@@ -126,52 +96,39 @@ function SparkBurst({ active, color }) {
     for (let i = 0; i < COUNT; i++) {
       const v = vels.current[i];
       if (v.life > 0) {
-        v.life -= delta * 0.9;
-        v.x += v.vx; v.y += v.vy; v.z += v.vz;
-        v.vy -= 0.003;
-        posArr[i * 3] = v.x;
-        posArr[i * 3 + 1] = v.y;
-        posArr[i * 3 + 2] = v.z;
-        anyAlive = true;
-      } else {
-        posArr[i * 3 + 1] = -500;
-      }
+        v.life -= delta*0.9; v.x+=v.vx; v.y+=v.vy; v.z+=v.vz; v.vy-=0.003;
+        arr[i*3]=v.x; arr[i*3+1]=v.y; arr[i*3+2]=v.z; anyAlive=true;
+      } else { arr[i*3+1]=-500; }
     }
-    geomRef.current.attributes.position.needsUpdate = true;
-    matRef.current.opacity = THREE.MathUtils.lerp(matRef.current.opacity, anyAlive ? 1.0 : 0, 0.18);
+    obj.geometry.attributes.position.needsUpdate = true;
+    obj.material.opacity = THREE.MathUtils.lerp(obj.material.opacity, anyAlive ? 1.0 : 0, 0.18);
+    obj.material.color.set(color);
   });
-
-  return (
-    <points>
-      <bufferGeometry ref={geomRef}>
-        <bufferAttribute attach="attributes-position" args={[posArr, 3]} />
-      </bufferGeometry>
-      <pointsMaterial ref={matRef} size={0.2} color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
-    </points>
-  );
+  return <primitive object={obj} />;
 }
 
 function BeamLight({ active, color }) {
+  const groupRef = useRef();
   const coneRef = useRef();
   const glowRef = useRef();
   const pulseRef = useRef();
 
   useFrame((state, delta) => {
     if (!coneRef.current) return;
-    const t = active ? 0.4 : 0;
-    coneRef.current.material.opacity = THREE.MathUtils.lerp(coneRef.current.material.opacity, t, 0.12);
-    if (glowRef.current) {
-      glowRef.current.material.opacity = THREE.MathUtils.lerp(glowRef.current.material.opacity, active ? 0.8 : 0, 0.12);
-    }
+    coneRef.current.material.opacity = THREE.MathUtils.lerp(coneRef.current.material.opacity, active ? 0.38 : 0, 0.12);
+    if (glowRef.current) glowRef.current.material.opacity = THREE.MathUtils.lerp(glowRef.current.material.opacity, active ? 0.75 : 0, 0.12);
     if (pulseRef.current) {
-      const pulse = active ? 0.3 + Math.sin(state.clock.elapsedTime * 4) * 0.15 : 0;
-      pulseRef.current.material.opacity = THREE.MathUtils.lerp(pulseRef.current.material.opacity, pulse, 0.15);
+      const p = active ? 0.28 + Math.sin(state.clock.elapsedTime * 4) * 0.14 : 0;
+      pulseRef.current.material.opacity = THREE.MathUtils.lerp(pulseRef.current.material.opacity, p, 0.15);
     }
     if (active) coneRef.current.rotation.y += delta * 0.6;
+    if (coneRef.current) { coneRef.current.material.color.set(color); }
+    if (glowRef.current) { glowRef.current.material.color.set(color); }
+    if (pulseRef.current) { pulseRef.current.material.color.set(color); }
   });
 
   return (
-    <group>
+    <group ref={groupRef}>
       <mesh ref={coneRef} position={[0, 7, 0]} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[3, 16, 32, 1, true]} />
         <meshBasicMaterial color={color} transparent opacity={0} side={THREE.BackSide} depthWrite={false} blending={THREE.AdditiveBlending} />
@@ -189,35 +146,24 @@ function BeamLight({ active, color }) {
 }
 
 function EnergyRing({ active, color }) {
-  const ring1Ref = useRef();
-  const ring2Ref = useRef();
-  const ring3Ref = useRef();
+  const r1 = useRef(); const r2 = useRef(); const r3 = useRef();
 
   useFrame((_, delta) => {
-    if (!ring1Ref.current) return;
-    ring1Ref.current.rotation.x += delta * 2.5;
-    ring1Ref.current.rotation.z += delta * 1.8;
-    if (ring2Ref.current) { ring2Ref.current.rotation.y += delta * 3.2; ring2Ref.current.rotation.z += delta * 2.1; }
-    if (ring3Ref.current) { ring3Ref.current.rotation.x += delta * 1.5; ring3Ref.current.rotation.y += delta * 2.8; }
-    ring1Ref.current.material.opacity = THREE.MathUtils.lerp(ring1Ref.current.material.opacity, active ? 0.85 : 0, 0.12);
-    if (ring2Ref.current) ring2Ref.current.material.opacity = THREE.MathUtils.lerp(ring2Ref.current.material.opacity, active ? 0.6 : 0, 0.12);
-    if (ring3Ref.current) ring3Ref.current.material.opacity = THREE.MathUtils.lerp(ring3Ref.current.material.opacity, active ? 0.4 : 0, 0.12);
+    if (!r1.current) return;
+    r1.current.rotation.x += delta*2.5; r1.current.rotation.z += delta*1.8;
+    if (r2.current) { r2.current.rotation.y += delta*3.2; r2.current.rotation.z += delta*2.1; }
+    if (r3.current) { r3.current.rotation.x += delta*1.5; r3.current.rotation.y += delta*2.8; }
+    r1.current.material.opacity = THREE.MathUtils.lerp(r1.current.material.opacity, active ? 0.85 : 0, 0.12);
+    r1.current.material.color.set(color);
+    if (r2.current) { r2.current.material.opacity = THREE.MathUtils.lerp(r2.current.material.opacity, active ? 0.6 : 0, 0.12); r2.current.material.color.set(color); }
+    if (r3.current) { r3.current.material.opacity = THREE.MathUtils.lerp(r3.current.material.opacity, active ? 0.4 : 0, 0.12); r3.current.material.color.set(color); }
   });
 
   return (
     <group position={[0, 0.8, 0]}>
-      <mesh ref={ring1Ref}>
-        <torusGeometry args={[3.0, 0.08, 8, 80]} />
-        <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
-      <mesh ref={ring2Ref}>
-        <torusGeometry args={[2.3, 0.05, 8, 80]} />
-        <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
-      <mesh ref={ring3Ref}>
-        <torusGeometry args={[1.6, 0.04, 8, 64]} />
-        <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
+      <mesh ref={r1}><torusGeometry args={[3.0, 0.08, 8, 80]} /><meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} /></mesh>
+      <mesh ref={r2}><torusGeometry args={[2.3, 0.05, 8, 80]} /><meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} /></mesh>
+      <mesh ref={r3}><torusGeometry args={[1.6, 0.04, 8, 64]} /><meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} /></mesh>
     </group>
   );
 }
@@ -282,9 +228,9 @@ const DOSSIERS = {
     tag: "CHAMPIONSHIP POINTS",
     title: "PUBLICATIONS",
     list: [
-      { title: "AV Situational Awareness", venue: "Springer 2026" },
-      { title: "Privacy-Preserving Techniques", venue: "IJARESM 2024" },
-      { title: "Cybersecurity & Blockchain", venue: "Springer 2026" },
+      { title: "Improving Situational Awareness of Autonomous Vehicles to Ensure Safe Navigation", venue: "Springer 2026", url: "https://link.springer.com/chapter/10.1007/978-3-032-14156-9_35" },
+      { title: "Enhancing Data Verification through Privacy-Preserving Techniques", venue: "IJARESM 2024", url: "https://www.ijaresm.com/uploaded_files/document_file/Mohammed_Emad_Sultan_SiddiqipInA.pdf" },
+      { title: "Future Trends in Cybersecurity and Blockchain", venue: "Springer 2026", url: "https://link.springer.com/chapter/10.1007/978-3-032-14156-9_37" },
       { title: "Quantum Cryptographic Robot P2P", venue: "DRDO India 2024" },
       { title: "Patent: Safe Count Voting System", venue: "Patent 2025" }
     ],
@@ -608,6 +554,7 @@ export default function App() {
   useEffect(() => {
     const onWheel = (e) => {
       if (freeRoamRef.current) return;
+      if (e.target.closest('.hud-panel, .hand-tracking-box, .bottom-bar')) return;
       e.preventDefault();
       zoomRef.current = THREE.MathUtils.clamp(
         zoomRef.current * (1 + e.deltaY * 0.001),
@@ -805,8 +752,13 @@ export default function App() {
             <div role="list" aria-label="Publications and patents">
               {d.list.map(l => (
                 <article key={l.title} className="list-item" role="listitem">
-                  <div className="list-item-title">📄 {l.title}</div>
-                  <div className="list-item-venue">{l.venue}</div>
+                  <div className="list-item-title">
+                    {l.url
+                      ? <a href={l.url} target="_blank" rel="noopener noreferrer" className="pub-link">📄 {l.title}</a>
+                      : <>📄 {l.title}</>
+                    }
+                  </div>
+                  <div className="list-item-venue">{l.venue}{l.url && <span className="pub-badge"> ↗ VIEW</span>}</div>
                 </article>
               ))}
             </div>
