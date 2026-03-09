@@ -6,6 +6,205 @@ import { HandTracker } from './HandTracker';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProceduralF1Car from './components/Game/ProceduralF1Car';
 
+function detectGesture(lm) {
+  if (!lm || lm.length < 21) return { gesture: 'none', pinchDist: 0.1 };
+  const ext = (tip, pip) => lm[tip].y < lm[pip].y;
+  const iUp = ext(8, 6);
+  const mUp = ext(12, 10);
+  const rUp = ext(16, 14);
+  const pUp = ext(20, 18);
+  const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
+  if (!iUp && !mUp && !rUp && !pUp) return { gesture: 'fist', pinchDist };
+  if (iUp && mUp && rUp && pUp)    return { gesture: 'open', pinchDist };
+  if (iUp && !mUp && !rUp && !pUp) return { gesture: 'point', pinchDist };
+  if (iUp && mUp && !rUp && !pUp)  return { gesture: 'peace', pinchDist };
+  if (iUp && !mUp && !rUp && pUp)  return { gesture: 'rock', pinchDist };
+  return { gesture: 'none', pinchDist };
+}
+
+const GESTURE_LABELS = {
+  fist:  '✊ FIST — EXHAUST SMOKE',
+  open:  '🖐 OPEN PALM — CONTROL',
+  point: '☝️ POINT — LIGHT BEAM',
+  peace: '✌️ PEACE — SPARK BURST',
+  rock:  '🤘 ROCK — ENERGY RINGS',
+  none:  '',
+};
+
+function ExhaustSmoke({ active }) {
+  const COUNT = 100;
+  const pointsRef = useRef();
+  const posData = useRef(new Float32Array(COUNT * 3));
+  const particles = useRef(
+    Array.from({ length: COUNT }, () => ({ x: 0, y: -100, z: 0, vx: 0, vy: 0, vz: 0, life: 0 }))
+  );
+
+  useFrame((_, delta) => {
+    if (!pointsRef.current) return;
+    const p = particles.current;
+    const pos = posData.current;
+
+    if (active) {
+      for (let i = 0; i < COUNT; i++) {
+        if (p[i].life <= 0 && Math.random() < 0.5) {
+          const side = Math.random() > 0.5 ? 0.28 : -0.28;
+          p[i] = {
+            x: side + (Math.random() - 0.5) * 0.08,
+            y: 0.32, z: -2.12,
+            vx: (Math.random() - 0.5) * 0.012,
+            vy: 0.018 + Math.random() * 0.022,
+            vz: -(Math.random() * 0.008),
+            life: 1.0,
+          };
+        }
+      }
+    }
+
+    for (let i = 0; i < COUNT; i++) {
+      if (p[i].life > 0) {
+        p[i].life -= delta * 0.55;
+        p[i].x += p[i].vx;
+        p[i].y += p[i].vy;
+        p[i].z += p[i].vz;
+        p[i].vx += (Math.random() - 0.5) * 0.0015;
+        pos[i * 3] = p[i].x;
+        pos[i * 3 + 1] = p[i].y;
+        pos[i * 3 + 2] = p[i].z;
+      } else {
+        pos[i * 3 + 1] = -100;
+      }
+    }
+    pointsRef.current.geometry.attributes.position.needsUpdate = true;
+    pointsRef.current.material.opacity = THREE.MathUtils.lerp(
+      pointsRef.current.material.opacity, active ? 0.65 : 0, 0.08
+    );
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" array={posData.current} count={COUNT} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial size={0.4} color="#dddddd" transparent opacity={0} depthWrite={false} sizeAttenuation />
+    </points>
+  );
+}
+
+function SparkBurst({ active, color }) {
+  const COUNT = 80;
+  const pointsRef = useRef();
+  const posData = useRef(new Float32Array(COUNT * 3));
+  const vels = useRef(
+    Array.from({ length: COUNT }, () => ({ x: 0, y: -100, z: 0, vx: 0, vy: 0, vz: 0, life: 0 }))
+  );
+  const wasActive = useRef(false);
+
+  useFrame((_, delta) => {
+    if (!pointsRef.current) return;
+
+    if (active && !wasActive.current) {
+      for (let i = 0; i < COUNT; i++) {
+        const angle = (i / COUNT) * Math.PI * 2 + Math.random() * 0.5;
+        const pitch = (Math.random() - 0.3) * Math.PI;
+        const speed = 0.04 + Math.random() * 0.07;
+        vels.current[i] = {
+          x: 0, y: 0.6 + Math.random() * 0.4, z: 0,
+          vx: Math.cos(angle) * Math.cos(pitch) * speed,
+          vy: Math.abs(Math.sin(pitch)) * speed * 2.5,
+          vz: Math.sin(angle) * Math.cos(pitch) * speed,
+          life: 0.8 + Math.random() * 0.4,
+        };
+      }
+    }
+    wasActive.current = active;
+
+    const v = vels.current;
+    const pos = posData.current;
+    let anyAlive = false;
+    for (let i = 0; i < COUNT; i++) {
+      if (v[i].life > 0) {
+        v[i].life -= delta * 1.0;
+        v[i].x += v[i].vx;
+        v[i].y += v[i].vy;
+        v[i].z += v[i].vz;
+        v[i].vy -= 0.0025;
+        pos[i * 3] = v[i].x;
+        pos[i * 3 + 1] = v[i].y;
+        pos[i * 3 + 2] = v[i].z;
+        anyAlive = true;
+      } else {
+        pos[i * 3 + 1] = -100;
+      }
+    }
+    pointsRef.current.geometry.attributes.position.needsUpdate = true;
+    pointsRef.current.material.opacity = THREE.MathUtils.lerp(
+      pointsRef.current.material.opacity, anyAlive ? 0.95 : 0, 0.15
+    );
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" array={posData.current} count={COUNT} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial size={0.12} color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
+    </points>
+  );
+}
+
+function BeamLight({ active, color }) {
+  const coneRef = useRef();
+  const glowRef = useRef();
+
+  useFrame((_, delta) => {
+    if (!coneRef.current || !glowRef.current) return;
+    coneRef.current.material.opacity = THREE.MathUtils.lerp(coneRef.current.material.opacity, active ? 0.3 : 0, 0.1);
+    glowRef.current.material.opacity = THREE.MathUtils.lerp(glowRef.current.material.opacity, active ? 0.7 : 0, 0.1);
+    if (active) coneRef.current.rotation.y += delta * 0.5;
+  });
+
+  return (
+    <group position={[0, 0.5, 0]}>
+      <mesh ref={coneRef} position={[0, 6, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[2.5, 14, 32, 1, true]} />
+        <meshBasicMaterial color={color} transparent opacity={0} side={THREE.BackSide} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <mesh ref={glowRef} position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[1.5, 32]} />
+        <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function EnergyRing({ active, color }) {
+  const ring1Ref = useRef();
+  const ring2Ref = useRef();
+
+  useFrame((_, delta) => {
+    if (!ring1Ref.current || !ring2Ref.current) return;
+    ring1Ref.current.rotation.x += delta * 2.5;
+    ring1Ref.current.rotation.z += delta * 1.8;
+    ring2Ref.current.rotation.y += delta * 3;
+    ring2Ref.current.rotation.z += delta * 2;
+    ring1Ref.current.material.opacity = THREE.MathUtils.lerp(ring1Ref.current.material.opacity, active ? 0.7 : 0, 0.1);
+    ring2Ref.current.material.opacity = THREE.MathUtils.lerp(ring2Ref.current.material.opacity, active ? 0.45 : 0, 0.1);
+  });
+
+  return (
+    <group position={[0, 0.8, 0]}>
+      <mesh ref={ring1Ref}>
+        <torusGeometry args={[2.8, 0.06, 8, 80]} />
+        <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <mesh ref={ring2Ref}>
+        <torusGeometry args={[2.2, 0.04, 8, 80]} />
+        <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+    </group>
+  );
+}
+
 const BREAKPOINT_MOBILE = 767;
 const BREAKPOINT_TABLET = 1023;
 const TEAM_TRANSITION_MS = 700;
@@ -200,7 +399,7 @@ function VehicleContent({ team }) {
   return <VehicleGLB team={team} />;
 }
 
-function F1Vehicle({ team, handData, transitionActive, freeRoamRef, onFreeRoamChange }) {
+function F1Vehicle({ team, handData, transitionActive, freeRoamRef, onFreeRoamChange, zoomRef }) {
   const outerRef = useRef();
   const wasdKeys = useRef({});
   const carSpeed = useRef(0);
@@ -295,9 +494,10 @@ function F1Vehicle({ team, handData, transitionActive, freeRoamRef, onFreeRoamCh
       } else {
         cam = CAMERA_POSITIONS.desktop;
       }
+      const zoom = zoomRef ? zoomRef.current : 1.0;
       state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, cam.x, CAMERA_LERP);
-      state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, cam.y, CAMERA_LERP);
-      state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, cam.z, CAMERA_LERP);
+      state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, cam.y * (0.5 + zoom * 0.5), CAMERA_LERP);
+      state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, cam.z * zoom, CAMERA_LERP);
       state.camera.lookAt(0, 0.5, 0);
     }
   });
@@ -311,7 +511,7 @@ function F1Vehicle({ team, handData, transitionActive, freeRoamRef, onFreeRoamCh
 
 export default function App() {
   const [team, setTeam] = useState('ferrari');
-  const [handData, setHandData] = useState({ detected: false, x: 0.5, y: 0.5 });
+  const [handData, setHandData] = useState({ detected: false, x: 0.5, y: 0.5, gesture: 'none', pinchDist: 0.1 });
   const [transitioning, setTransitioning] = useState(false);
   const [hasScroll, setHasScroll] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -325,6 +525,7 @@ export default function App() {
   const selectorRef = useRef(null);
   const freeRoamRef = useRef(false);
   const handTimeoutRef = useRef(null);
+  const zoomRef = useRef(1.0);
 
   const handleFreeRoamChange = useCallback((val) => {
     freeRoamRef.current = val;
@@ -358,15 +559,29 @@ export default function App() {
       if (res.multiHandLandmarks?.[0]) {
         const lm = res.multiHandLandmarks[0];
         const tip = lm[HAND_TIP_INDEX];
+        const { gesture, pinchDist } = detectGesture(lm);
         clearTimeout(handTimeoutRef.current);
         handTimeoutRef.current = setTimeout(() => {
-          setHandData(prev => ({ ...prev, detected: false }));
+          setHandData(prev => ({ ...prev, detected: false, gesture: 'none' }));
         }, 600);
-        setHandData({ detected: true, x: tip.x, y: tip.y });
+        setHandData({ detected: true, x: tip.x, y: tip.y, gesture, pinchDist, landmarks: lm });
       }
     });
     if (videoRef.current) tracker.start(videoRef.current);
     return () => clearTimeout(handTimeoutRef.current);
+  }, []);
+
+  useEffect(() => {
+    const onWheel = (e) => {
+      if (freeRoamRef.current) return;
+      e.preventDefault();
+      zoomRef.current = THREE.MathUtils.clamp(
+        zoomRef.current * (1 + e.deltaY * 0.001),
+        0.3, 2.8
+      );
+    };
+    window.addEventListener('wheel', onWheel, { passive: false });
+    return () => window.removeEventListener('wheel', onWheel);
   }, []);
 
   useEffect(() => {
@@ -446,17 +661,28 @@ export default function App() {
             </div>
             <div className="ht-status">{handData.detected ? 'HAND DETECTED' : 'STANDBY'}</div>
             {handData.detected && (
-              <div className="ht-bar-wrap">
-                <span className="ht-bar-label">← INDEX →</span>
-                <div className="ht-bar">
-                  <div className="ht-bar-fill" style={{ left: `${handData.x * 100}%` }} />
+              <>
+                <div className="ht-bar-wrap">
+                  <span className="ht-bar-label">← INDEX →</span>
+                  <div className="ht-bar">
+                    <div className="ht-bar-fill" style={{ left: `${handData.x * 100}%` }} />
+                  </div>
                 </div>
-              </div>
+                {handData.gesture && handData.gesture !== 'none' && (
+                  <div className="ht-gesture">{GESTURE_LABELS[handData.gesture]}</div>
+                )}
+              </>
             )}
             <div className="ht-divider" />
             <div className="ht-keys">
               <span><kbd>WASD</kbd> Drive car</span>
               <span><kbd>← →</kbd> Switch team</span>
+              <span><kbd>SCROLL</kbd> Zoom</span>
+            </div>
+            <div className="ht-divider" />
+            <div className="ht-gestures-hint">
+              <span>✊ Smoke  ✌️ Sparks</span>
+              <span>☝️ Beam  🤘 Rings</span>
             </div>
           </>
         )}
@@ -645,7 +871,16 @@ export default function App() {
                 transitionActive={transitioning}
                 freeRoamRef={freeRoamRef}
                 onFreeRoamChange={handleFreeRoamChange}
+                zoomRef={zoomRef}
               />
+              {!freeRoaming && (
+                <>
+                  <ExhaustSmoke active={handData.detected && handData.gesture === 'fist'} />
+                  <SparkBurst active={handData.detected && handData.gesture === 'peace'} color={d.theme.main} />
+                  <BeamLight active={handData.detected && handData.gesture === 'point'} color={d.theme.main} />
+                  <EnergyRing active={handData.detected && handData.gesture === 'rock'} color={d.theme.main} />
+                </>
+              )}
               <GroundGlow teamColor={d.theme.main} transitionActive={transitioning} />
               <SpeedLines active={transitioning} color={d.theme.main} />
               <Stars

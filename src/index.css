@@ -1951,6 +1951,32 @@ a:hover {
 }
 
 /* ========================================
+   GESTURE DISPLAY
+   ======================================== */
+.ht-gesture {
+  font-size: 0.58rem;
+  color: var(--team-color);
+  text-shadow: 0 0 8px var(--team-color);
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0;
+  animation: gestureFlash 0.3s ease-out;
+}
+
+@keyframes gestureFlash {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.ht-gestures-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.52rem;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 0.03em;
+}
+
+/* ========================================
    F1 QUOTE BLOCK
    ======================================== */
 .f1-quote {
