@@ -2015,3 +2015,78 @@ a:hover {
   letter-spacing: 0.03em;
   opacity: 0.92;
 }
+
+/* ========================================
+   MOBILE DRIVE CONTROLS
+   ======================================== */
+.mobile-drive-toggle {
+  position: fixed;
+  bottom: 90px;
+  right: 16px;
+  z-index: 200;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid var(--team-color);
+  border-radius: 8px;
+  color: var(--team-color);
+  font-family: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  box-shadow: 0 0 12px rgba(0,0,0,0.5);
+}
+
+.mobile-dpad {
+  position: fixed;
+  bottom: 90px;
+  right: 16px;
+  z-index: 200;
+  display: grid;
+  grid-template-areas:
+    ". up ."
+    "left esc right"
+    ". down .";
+  grid-template-columns: 52px 52px 52px;
+  grid-template-rows: 52px 52px 52px;
+  gap: 4px;
+}
+
+.dpad-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background 0.1s;
+  user-select: none;
+}
+
+.dpad-btn:active {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--team-color);
+  color: var(--team-color);
+}
+
+.dpad-up    { grid-area: up; }
+.dpad-left  { grid-area: left; }
+.dpad-right { grid-area: right; }
+.dpad-down  { grid-area: down; }
+.dpad-esc   {
+  grid-area: esc;
+  font-size: 0.7rem;
+  border-color: rgba(255, 80, 80, 0.4);
+  color: rgba(255, 100, 100, 0.8);
+}
+.dpad-esc:active {
+  background: rgba(255, 80, 80, 0.2);
+  border-color: rgba(255, 80, 80, 0.8);
+  color: #ff5050;
+}

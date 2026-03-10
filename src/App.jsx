@@ -78,30 +78,30 @@ function SparkBurst({ active, color }) {
   const COUNT = 120;
   const obj = useMemo(() => makeParticleSystem(COUNT, color, 0.22, true), [color]);
   const vels = useRef(Array.from({ length: COUNT }, () => ({ x: 0, y: -500, z: 0, vx: 0, vy: 0, vz: 0, life: 0 })));
-  const wasActive = useRef(false);
   useEffect(() => () => { obj.geometry.dispose(); obj.material.dispose(); }, [obj]);
 
   useFrame((_, delta) => {
     const arr = obj.geometry.attributes.position.array;
-    if (active && !wasActive.current) {
+    if (active) {
       for (let i = 0; i < COUNT; i++) {
-        const angle = (i/COUNT)*Math.PI*2 + Math.random()*0.5;
-        const pitch = (Math.random()-0.2)*Math.PI;
-        const speed = 0.06 + Math.random()*0.1;
-        vels.current[i] = { x: 0, y: 0.7+Math.random()*0.5, z: 0, vx: Math.cos(angle)*Math.cos(pitch)*speed, vy: Math.abs(Math.sin(pitch))*speed*2.8, vz: Math.sin(angle)*Math.cos(pitch)*speed, life: 1.0+Math.random()*0.5 };
+        if (vels.current[i].life <= 0 && Math.random() < 0.35) {
+          const angle = Math.random() * Math.PI * 2;
+          const pitch = (Math.random() - 0.15) * Math.PI;
+          const speed = 0.05 + Math.random() * 0.09;
+          vels.current[i] = { x: 0, y: 0.6 + Math.random()*0.5, z: 0, vx: Math.cos(angle)*Math.cos(pitch)*speed, vy: Math.abs(Math.sin(pitch))*speed*2.5, vz: Math.sin(angle)*Math.cos(pitch)*speed, life: 0.7+Math.random()*0.4 };
+        }
       }
     }
-    wasActive.current = active;
     let anyAlive = false;
     for (let i = 0; i < COUNT; i++) {
       const v = vels.current[i];
       if (v.life > 0) {
-        v.life -= delta*0.9; v.x+=v.vx; v.y+=v.vy; v.z+=v.vz; v.vy-=0.003;
+        v.life -= delta*1.1; v.x+=v.vx; v.y+=v.vy; v.z+=v.vz; v.vy-=0.004;
         arr[i*3]=v.x; arr[i*3+1]=v.y; arr[i*3+2]=v.z; anyAlive=true;
       } else { arr[i*3+1]=-500; }
     }
     obj.geometry.attributes.position.needsUpdate = true;
-    obj.material.opacity = THREE.MathUtils.lerp(obj.material.opacity, anyAlive ? 1.0 : 0, 0.18);
+    obj.material.opacity = THREE.MathUtils.lerp(obj.material.opacity, anyAlive ? 1.0 : 0, 0.15);
     obj.material.color.set(color);
   });
   return <primitive object={obj} />;
@@ -518,6 +518,10 @@ export default function App() {
     document.body.removeChild(link);
   };
 
+  const fireMobileKey = useCallback((code, down) => {
+    window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, bubbles: true }));
+  }, []);
+
   useEffect(() => {
     const root = document.documentElement;
     const theme = DOSSIERS[team].theme;
@@ -587,6 +591,32 @@ export default function App() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => {
+    const teams = Object.keys(DOSSIERS);
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const onTouchStart = (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    };
+    const onTouchEnd = (e) => {
+      if (freeRoamRef.current) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        const currentIndex = teams.indexOf(team);
+        if (dx < 0) changeTeam(teams[(currentIndex + 1) % teams.length]);
+        else changeTeam(teams[(currentIndex - 1 + teams.length) % teams.length]);
+      }
+    };
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [team]);
 
   useEffect(() => {
     const teams = Object.keys(DOSSIERS);
@@ -838,6 +868,40 @@ export default function App() {
           ))}
         </div>
       </nav>
+
+      {isMobile && !freeRoaming && (
+        <button
+          className="mobile-drive-toggle"
+          onTouchStart={(e) => { e.preventDefault(); fireMobileKey('KeyW', true); }}
+          onTouchEnd={(e) => { e.preventDefault(); fireMobileKey('KeyW', false); }}
+          aria-label="Enter drive mode"
+        >🏎 DRIVE</button>
+      )}
+
+      {isMobile && freeRoaming && (
+        <div className="mobile-dpad" aria-label="Drive controls">
+          <button className="dpad-btn dpad-up"
+            onTouchStart={(e) => { e.preventDefault(); fireMobileKey('KeyW', true); }}
+            onTouchEnd={(e) => { e.preventDefault(); fireMobileKey('KeyW', false); }}
+            aria-label="Accelerate">▲</button>
+          <button className="dpad-btn dpad-left"
+            onTouchStart={(e) => { e.preventDefault(); fireMobileKey('KeyA', true); }}
+            onTouchEnd={(e) => { e.preventDefault(); fireMobileKey('KeyA', false); }}
+            aria-label="Steer left">◀</button>
+          <button className="dpad-btn dpad-right"
+            onTouchStart={(e) => { e.preventDefault(); fireMobileKey('KeyD', true); }}
+            onTouchEnd={(e) => { e.preventDefault(); fireMobileKey('KeyD', false); }}
+            aria-label="Steer right">▶</button>
+          <button className="dpad-btn dpad-down"
+            onTouchStart={(e) => { e.preventDefault(); fireMobileKey('KeyS', true); }}
+            onTouchEnd={(e) => { e.preventDefault(); fireMobileKey('KeyS', false); }}
+            aria-label="Brake">▼</button>
+          <button className="dpad-btn dpad-esc"
+            onTouchStart={(e) => { e.preventDefault(); fireMobileKey('Escape', true); }}
+            onTouchEnd={(e) => { e.preventDefault(); fireMobileKey('Escape', false); }}
+            aria-label="Exit drive mode">✕</button>
+        </div>
+      )}
 
       <div className="canvas-container">
         <ErrorBoundary key={team}>
