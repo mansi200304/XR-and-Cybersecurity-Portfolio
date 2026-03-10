@@ -46,3 +46,7 @@ Thumbs.db
 *.tmp
 *.temp
 *.log
+
+# Internal workflow artifacts
+.zenflow/
+.zenflow-images/
