@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mansi Ganga Nayak — Resume</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 11px;
+      color: #1a1a1a;
+      background: #fff;
+      line-height: 1.45;
+    }
+
+    .page {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 32px 40px;
+    }
+
+    /* HEADER */
+    header {
+      border-bottom: 2.5px solid #1a1a1a;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+
+    header h1 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    header .tagline {
+      font-size: 11.5px;
+      color: #555;
+      margin-top: 2px;
+      letter-spacing: 0.04em;
+    }
+
+    header .contact-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 7px;
+      font-size: 10.5px;
+      color: #333;
+    }
+
+    header .contact-row a { color: #333; text-decoration: none; }
+    header .contact-row a:hover { text-decoration: underline; }
+
+    /* SECTION */
+    section { margin-bottom: 13px; }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #111;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 3px;
+      margin-bottom: 8px;
+    }
+
+    /* EDUCATION */
+    .edu-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+
+    .edu-degree { font-weight: 600; font-size: 11px; }
+    .edu-school { color: #444; font-size: 10.5px; }
+    .edu-date { font-size: 10px; color: #666; white-space: nowrap; }
+
+    /* EXPERIENCE */
+    .exp-block { margin-bottom: 9px; }
+
+    .exp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .exp-role { font-weight: 600; font-size: 11px; }
+    .exp-company { font-size: 10.5px; color: #444; }
+    .exp-date { font-size: 10px; color: #666; white-space: nowrap; }
+
+    /* PROJECTS */
+    .proj-block { margin-bottom: 8px; }
+    .proj-name { font-weight: 600; font-size: 11px; }
+    .proj-tech { font-size: 10px; color: #555; margin-bottom: 2px; }
+    .proj-desc { font-size: 10.5px; color: #333; }
+
+    /* PUBLICATIONS */
+    .pub-item { margin-bottom: 5px; display: flex; gap: 6px; }
+    .pub-bullet { color: #555; flex-shrink: 0; }
+    .pub-text { font-size: 10.5px; color: #222; }
+    .pub-venue { font-size: 10px; color: #777; }
+    .pub-text a { color: #0066cc; text-decoration: none; }
+    .pub-text a:hover { text-decoration: underline; }
+
+    /* SKILLS */
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px 20px;
+    }
+
+    .skill-item { font-size: 10.5px; }
+    .skill-name { font-weight: 500; }
+    .skill-bar {
+      height: 3px;
+      background: #e0e0e0;
+      border-radius: 2px;
+      margin-top: 2px;
+    }
+    .skill-fill {
+      height: 100%;
+      background: #1a1a1a;
+      border-radius: 2px;
+    }
+
+    /* STATS ROW */
+    .stats-row {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 8px;
+    }
+    .stat { text-align: center; }
+    .stat-val { font-size: 18px; font-weight: 800; }
+    .stat-label { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* PRINT */
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page { padding: 18px 28px; }
+      a { color: inherit !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- HEADER -->
+    <header>
+      <h1>Mansi Ganga Nayak</h1>
+      <div class="tagline">XR Developer &amp; Cybersecurity Researcher &nbsp;|&nbsp; MS Cybersecurity, Arizona State University</div>
+      <div class="contact-row">
+        <span>📧 <a href="mailto:nmansiganga@gmail.com">nmansiganga@gmail.com</a></span>
+        <span>📞 <a href="tel:4807615828">(480) 761-5828</a></span>
+        <span>📍 Tempe, Arizona</span>
+        <span>🌐 <a href="https://mansi200304.github.io/XR-and-Cybersecurity-Portfolio/" target="_blank">Portfolio</a></span>
+        <span>📄 F-1 Visa | 10–20 hrs/week</span>
+      </div>
+    </header>
+
+    <!-- SUMMARY -->
+    <section>
+      <div class="section-title">Summary</div>
+      <p style="font-size:10.5px; color:#333;">
+        Engineering immersive experiences at the intersection of art, code, and security. Master's student at Arizona State University specializing in XR development with expertise in Unity, Unreal Engine, and real-time rendering. Published researcher with 6 publications, 1 patent, and 4 internships across top institutions.
+      </p>
+    </section>
+
+    <!-- KEY STATS -->
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val">6</div><div class="stat-label">Publications</div></div>
+      <div class="stat"><div class="stat-val">1</div><div class="stat-label">Patent</div></div>
+      <div class="stat"><div class="stat-val">4</div><div class="stat-label">Internships</div></div>
+      <div class="stat"><div class="stat-val">3</div><div class="stat-label">Major Projects</div></div>
+    </div>
+
+    <!-- EDUCATION -->
+    <section>
+      <div class="section-title">Education</div>
+      <div class="edu-row">
+        <div>
+          <span class="edu-degree">Master of Science — Cybersecurity</span>
+          <span class="edu-school"> &nbsp;·&nbsp; Arizona State University</span>
+        </div>
+        <div class="edu-date">Expected 2027</div>
+      </div>
+      <div class="edu-row">
+        <div>
+          <span class="edu-degree">B.Tech — Computer Science Engineering</span>
+          <span class="edu-school"> &nbsp;·&nbsp; KIIT University</span>
+          <span class="edu-school"> &nbsp;·&nbsp; GPA: 7.32/10</span>
+        </div>
+        <div class="edu-date">2025</div>
+      </div>
+    </section>
+
+    <!-- EXPERIENCE -->
+    <section>
+      <div class="section-title">Experience</div>
+
+      <div class="exp-block">
+        <div class="exp-header">
+          <div><span class="exp-role">Research Intern</span> <span class="exp-company">— IIT Kanpur</span></div>
+          <div class="exp-date">2024 – 2025</div>
+        </div>
+        <p style="font-size:10.5px; color:#444; margin-top:2px;">Conducted research in cybersecurity and autonomous systems, contributing to published work on AV situational awareness and blockchain security trends.</p>
+      </div>
+
+      <div class="exp-block">
+        <div class="exp-header">
+          <div><span class="exp-role">Technical Intern</span> <span class="exp-company">— Celebal Technologies</span></div>
+          <div class="exp-date">2024</div>
+        </div>
+        <p style="font-size:10.5px; color:#444; margin-top:2px;">Developed technical solutions and contributed to software engineering projects in a fast-paced consulting environment.</p>
+      </div>
+
+      <div class="exp-block">
+        <div class="exp-header">
+          <div><span class="exp-role">Software Intern</span> <span class="exp-company">— CSM Tech</span></div>
+          <div class="exp-date">2021 – 2022</div>
+        </div>
+        <p style="font-size:10.5px; color:#444; margin-top:2px;">Built software features, tested applications, and supported the engineering team in product development cycles.</p>
+      </div>
+
+      <div class="exp-block">
+        <div class="exp-header">
+          <div><span class="exp-role">Digital Marketing Intern</span> <span class="exp-company">— Renison</span></div>
+          <div class="exp-date">2021</div>
+        </div>
+        <p style="font-size:10.5px; color:#444; margin-top:2px;">Managed digital marketing campaigns and supported content strategy and brand communications.</p>
+      </div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section>
+      <div class="section-title">Major Projects</div>
+
+      <div class="proj-block">
+        <div class="proj-name">VR Security Training Simulation</div>
+        <div class="proj-tech">Unity · VFX Graph · Blender &nbsp;|&nbsp; 6 Months</div>
+        <div class="proj-desc">Created particle effects, custom shaders, and optimized for 90fps VR. Designed immersive cybersecurity training scenarios with realistic threat simulations.</div>
+      </div>
+
+      <div class="proj-block">
+        <div class="proj-name">Real-Time Environmental Simulation for Autonomous Vehicles</div>
+        <div class="proj-tech">Unreal Engine · Niagara · 3ds Max &nbsp;|&nbsp; 8 Months</div>
+        <div class="proj-desc">Built procedural environmental effects for AV perception testing. Research published in Springer 2026.</div>
+      </div>
+
+      <div class="proj-block">
+        <div class="proj-name">Automated Asset Pipeline</div>
+        <div class="proj-tech">Unity · Python · C# &nbsp;|&nbsp; 3 Months</div>
+        <div class="proj-desc">Developed Python scripts for automated texture compression and LOD generation, reducing asset processing time significantly.</div>
+      </div>
+    </section>
+
+    <!-- PUBLICATIONS -->
+    <section>
+      <div class="section-title">Publications &amp; Patents</div>
+
+      <div class="pub-item">
+        <span class="pub-bullet">›</span>
+        <div class="pub-text">
+          <a href="https://link.springer.com/chapter/10.1007/978-3-032-14156-9_35" target="_blank">Improving Situational Awareness of Autonomous Vehicles to Ensure Safe Navigation</a>
+          <span class="pub-venue"> — Springer 2026</span>
+        </div>
+      </div>
+
+      <div class="pub-item">
+        <span class="pub-bullet">›</span>
+        <div class="pub-text">
+          <a href="https://link.springer.com/chapter/10.1007/978-3-032-14156-9_37" target="_blank">Future Trends in Cybersecurity and Blockchain</a>
+          <span class="pub-venue"> — Springer 2026</span>
+        </div>
+      </div>
+
+      <div class="pub-item">
+        <span class="pub-bullet">›</span>
+        <div class="pub-text">
+          <a href="https://www.ijaresm.com/uploaded_files/document_file/Mohammed_Emad_Sultan_SiddiqipInA.pdf" target="_blank">Enhancing Data Verification through Privacy-Preserving Techniques</a>
+          <span class="pub-venue"> — IJARESM 2024</span>
+        </div>
+      </div>
+
+      <div class="pub-item">
+        <span class="pub-bullet">›</span>
+        <div class="pub-text">
+          Quantum Cryptographic Robot P2P
+          <span class="pub-venue"> — DRDO India 2024</span>
+        </div>
+      </div>
+
+      <div class="pub-item">
+        <span class="pub-bullet">›</span>
+        <div class="pub-text">
+          Patent: Safe Count Voting System
+          <span class="pub-venue"> — Patent 2025</span>
+        </div>
+      </div>
+
+      <div class="pub-item">
+        <span class="pub-bullet">›</span>
+        <div class="pub-text">
+          Additional publications (under embargo / pending release)
+          <span class="pub-venue"> — 2025–2026</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SKILLS -->
+    <section>
+      <div class="section-title">Skills</div>
+      <div class="skills-grid">
+        <div class="skill-item">
+          <div class="skill-name">Research &amp; Publishing</div>
+          <div class="skill-bar"><div class="skill-fill" style="width:100%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-name">Python &amp; Automation</div>
+          <div class="skill-bar"><div class="skill-fill" style="width:95%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-name">Unity &amp; VFX Graph</div>
+          <div class="skill-bar"><div class="skill-fill" style="width:85%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-name">3D Tools (Blender, 3ds Max)</div>
+          <div class="skill-bar"><div class="skill-fill" style="width:80%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-name">Unreal Engine &amp; Niagara</div>
+          <div class="skill-bar"><div class="skill-fill" style="width:75%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-name">Cybersecurity &amp; Blockchain</div>
+          <div class="skill-bar"><div class="skill-fill" style="width:85%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-name">XR Development (AR/VR)</div>
+          <div class="skill-bar"><div class="skill-fill" style="width:88%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-name">C# &amp; JavaScript</div>
+          <div class="skill-bar"><div class="skill-fill" style="width:80%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-name">Real-Time Rendering</div>
+          <div class="skill-bar"><div class="skill-fill" style="width:82%"></div></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>
