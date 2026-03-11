@@ -351,7 +351,7 @@ function GroundGlow({ teamColor, transitionActive }) {
 }
 
 function VehicleGLB({ team }) {
-  const { scene } = useGLTF(`/models/${team}.glb`);
+  const { scene } = useGLTF(`${import.meta.env.BASE_URL}models/${team}.glb`);
   return <primitive object={scene} scale={MODEL_SCALE} />;
 }
 
@@ -511,7 +511,7 @@ export default function App() {
 
   const downloadResume = () => {
     const link = document.createElement('a');
-    link.href = '/resume.pdf';
+    link.href = `${import.meta.env.BASE_URL}resume.pdf`;
     link.download = 'Mansi_Nayak_Resume.pdf';
     document.body.appendChild(link);
     link.click();
