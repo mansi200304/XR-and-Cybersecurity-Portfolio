@@ -510,12 +510,7 @@ export default function App() {
   };
 
   const downloadResume = () => {
-    const link = document.createElement('a');
-    link.href = `${import.meta.env.BASE_URL}resume.pdf`;
-    link.download = 'Mansi_Nayak_Resume.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    window.open(`${import.meta.env.BASE_URL}resume.html`, '_blank');
   };
 
   const fireMobileKey = useCallback((code, down) => {
